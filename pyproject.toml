@@ -1,0 +1,13 @@
+[project]
+name = "tiny-gpu"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "cocotb==1.9.2",
+    "edalize>=0.6.8",
+    "teroshdl>=3.0.0",
+    "vunit-hdl>=4.7.1",
+    "yowasp-yosys>=0.67.0.0.post1190",
+]
