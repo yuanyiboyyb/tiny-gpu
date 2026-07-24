@@ -9,13 +9,13 @@ module dispatch #(
 	parameter NUM_CORES         = 2,
 	parameter THREADS_PER_BLOCK = 4
 ) (
-	input  logic                               clk                              ,
-	input  logic                               reset                            ,
-	input  logic                               start                            ,
+	input  wire clk                              ,
+	input  wire reset                            ,
+	input  wire start                            ,
 	// Kernel Metadata
-	input  logic [                        7:0] thread_count                     ,
+	input  wire [                        7:0] thread_count                     ,
 	// Core States
-	input  logic [              NUM_CORES-1:0] core_done                        ,
+	input  wire [              NUM_CORES-1:0] core_done                        ,
 	output logic [              NUM_CORES-1:0] core_start                       ,
 	output logic [              NUM_CORES-1:0] core_reset                       ,
 	output logic [                        7:0] core_block_id [NUM_CORES-1:0]    ,

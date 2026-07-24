@@ -6,31 +6,31 @@ module id_stage #(
 	parameter int unsigned PROGRAM_MEM_DATA_BITS = 16,
 	parameter int unsigned DATA_BITS             = 8
 ) (
-	input  logic                             start                  ,
-	input  logic                             clk                    ,
-	input  logic                             reset                  ,
-	input  logic                             valid_in               ,
-	input  logic [PROGRAM_MEM_DATA_BITS-1:0] instruction            ,
-	input  logic                             instruction_flag       ,
+	input  wire start                  ,
+	input  wire clk                    ,
+	input  wire reset                  ,
+	input  wire valid_in               ,
+	input  wire [PROGRAM_MEM_DATA_BITS-1:0] instruction            ,
+	input  wire                              instruction_flag       ,
 	// Per-thread metadata exposed as read-only R13/R14/R15.
-	input  logic [            DATA_BITS-1:0] rf_rs_data             ,
-	input  logic [            DATA_BITS-1:0] rf_rt_data             ,
-	input  logic [                      2:0] rf_nzp_data            ,
+	input  wire [            DATA_BITS-1:0] rf_rs_data             ,
+	input  wire [            DATA_BITS-1:0] rf_rt_data             ,
+	input  wire [                      2:0] rf_nzp_data            ,
 	// Forwarding data from EX stage.
-	input  logic                             ex_reg_write_enable    ,
-	input  logic [                      3:0] ex_reg_write_addr      ,
-	input  logic [            DATA_BITS-1:0] ex_reg_write_data      ,
-	input  logic                             ex_nzp_write_enable    ,
-	input  logic [                      2:0] ex_nzp_write_data      ,
+	input  wire ex_reg_write_enable    ,
+	input  wire [                      3:0] ex_reg_write_addr      ,
+	input  wire [            DATA_BITS-1:0] ex_reg_write_data      ,
+	input  wire ex_nzp_write_enable    ,
+	input  wire [                      2:0] ex_nzp_write_data      ,
 	// Forwarding data from MEM stage.
-	input  logic                             mem_reg_write_enable   ,
-	input  logic [                      3:0] mem_reg_write_addr     ,
-	input  logic [            DATA_BITS-1:0] mem_reg_write_data     ,
-	input  logic                             mem_forward_valid      ,
-	input  logic                             mem_forward_from_memory,
-	input  logic                             mem_forward_ready      ,
-	input  logic                             mem_nzp_write_enable   ,
-	input  logic [                      2:0] mem_nzp_write_data     ,
+	input  wire mem_reg_write_enable   ,
+	input  wire [                      3:0] mem_reg_write_addr     ,
+	input  wire [            DATA_BITS-1:0] mem_reg_write_data     ,
+	input  wire mem_forward_valid      ,
+	input  wire mem_forward_from_memory,
+	input  wire mem_forward_ready      ,
+	input  wire mem_nzp_write_enable   ,
+	input  wire [                      2:0] mem_nzp_write_data     ,
 	// Decoded source addresses are also available to the hazard unit.
 	output logic [                      3:0] rd_addr                ,
 	output logic [            DATA_BITS-1:0] rs_data                ,
@@ -50,7 +50,7 @@ module id_stage #(
 	output logic                             is_ret                 ,
 	output logic                             valid                  ,
 	output logic                             ready_out              ,
-	input  logic                             ready_in
+	input  wire ready_in
 );
 	localparam logic [3:0] OP_NOP   = 4'b0000;
 	localparam logic [3:0] OP_BRNZP = 4'b0001;

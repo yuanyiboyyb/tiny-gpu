@@ -4,13 +4,13 @@
 module wb_stage #(
 	parameter int unsigned DATA_BITS = 8
 ) (
-	input  logic [DATA_BITS-1:0] execute_result  , // MEM/WB统一写回数据
-	input  logic [          2:0] nzp_result      , // MEM/WB的NZP结果
-	input  logic [          3:0] rd_addr         , // 目标寄存器编号
-	input  logic                 nzp_write       , // NZP写使能
-	input  logic                 reg_write       , // 通用寄存器写使能
-	input  logic                 is_ret          , // RET指令标志
-	input  logic                 valid           , // MEM/WB数据有效
+	input  wire [DATA_BITS-1:0] execute_result  , // MEM/WB统一写回数据
+	input  wire [          2:0] nzp_result      , // MEM/WB的NZP结果
+	input  wire [          3:0] rd_addr         , // 目标寄存器编号
+	input  wire nzp_write       , // NZP写使能
+	input  wire reg_write       , // 通用寄存器写使能
+	input  wire is_ret          , // RET指令标志
+	input  wire valid           , // MEM/WB数据有效
 
 	output logic                 write_enable    , // 寄存器堆写使能
 	output logic [          3:0] write_addr      , // 寄存器堆写地址

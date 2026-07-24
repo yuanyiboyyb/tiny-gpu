@@ -11,28 +11,28 @@ module gpu #(
 	parameter int NUM_CORES                = 2 ,
 	parameter int THREADS_PER_BLOCK        = 4
 ) (
-	input  logic                                clk                                                ,
-	input  logic                                reset                                              ,
+	input  wire clk                                                ,
+	input  wire reset                                              ,
 	// Kernel Execution
-	input  logic                                start                                              ,
+	input  wire start                                              ,
 	output logic                                done                                               ,
 	// Device Control Register
-	input  logic                                device_control_write_enable                        ,
-	input  logic [                         7:0] device_control_data                                ,
+	input  wire device_control_write_enable                        ,
+	input  wire [                         7:0] device_control_data                                ,
 	// Program Memory
 	output logic [PROGRAM_MEM_NUM_CHANNELS-1:0] program_mem_read_valid                             ,
 	output logic [   PROGRAM_MEM_ADDR_BITS-1:0] program_mem_read_address [PROGRAM_MEM_NUM_CHANNELS-1:0],
-	input  logic [PROGRAM_MEM_NUM_CHANNELS-1:0] program_mem_read_ready                             ,
-	input  logic [   PROGRAM_MEM_DATA_BITS-1:0] program_mem_read_data [PROGRAM_MEM_NUM_CHANNELS-1:0],
+	input  wire [PROGRAM_MEM_NUM_CHANNELS-1:0] program_mem_read_ready                             ,
+	input  wire [   PROGRAM_MEM_DATA_BITS-1:0] program_mem_read_data [PROGRAM_MEM_NUM_CHANNELS-1:0],
 	// Data Memory
 	output logic [   DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_valid                                ,
 	output logic [      DATA_MEM_ADDR_BITS-1:0] data_mem_read_address [DATA_MEM_NUM_CHANNELS-1:0]  ,
-	input  logic [   DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_ready                                ,
-	input  logic [      DATA_MEM_DATA_BITS-1:0] data_mem_read_data [DATA_MEM_NUM_CHANNELS-1:0]     ,
+	input  wire [   DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_ready                                ,
+	input  wire [      DATA_MEM_DATA_BITS-1:0] data_mem_read_data [DATA_MEM_NUM_CHANNELS-1:0]     ,
 	output logic [   DATA_MEM_NUM_CHANNELS-1:0] data_mem_write_valid                               ,
 	output logic [      DATA_MEM_ADDR_BITS-1:0] data_mem_write_address [DATA_MEM_NUM_CHANNELS-1:0] ,
 	output logic [      DATA_MEM_DATA_BITS-1:0] data_mem_write_data [DATA_MEM_NUM_CHANNELS-1:0]    ,
-	input  logic [   DATA_MEM_NUM_CHANNELS-1:0] data_mem_write_ready
+	input  wire [   DATA_MEM_NUM_CHANNELS-1:0] data_mem_write_ready
 );
 	//dcr
 	logic [7:0] thread_count;

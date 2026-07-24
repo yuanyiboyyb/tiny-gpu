@@ -5,11 +5,11 @@
 // > Used to configure high-level settings
 // > In this minimal example, the DCR is used to configure the number of threads to run for the kernel
 module dcr (
-    input logic clk,
-    input logic reset,
+    input  wire clk,
+    input  wire reset,
 
-    input logic device_control_write_enable,
-    input logic [7:0] device_control_data,
+    input  wire device_control_write_enable,
+    input  wire [7:0] device_control_data,
     output logic [7:0] thread_count
 );
     // Store device control data in dedicated register

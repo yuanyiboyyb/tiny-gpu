@@ -12,28 +12,28 @@ module core #(
 	parameter PROGRAM_MEM_DATA_BITS = 16,
 	parameter THREADS_PER_BLOCK     = 4
 ) (
-	input  logic                               clk                                           ,
-	input  logic                               reset                                         ,
+	input  wire clk                                           ,
+	input  wire reset                                         ,
 	// Kernel Execution
-	input  logic                               start                                         ,
+	input  wire start                                         ,
 	output logic                               done                                          ,
 	// Block Metadata
-	input  logic [                        7:0] block_id                                      ,
-	input  logic [$clog2(THREADS_PER_BLOCK):0] thread_count                                  ,
+	input  wire [                        7:0] block_id                                      ,
+	input  wire [$clog2(THREADS_PER_BLOCK):0] thread_count                                  ,
 	// Program Memory
 	output logic                               program_mem_read_valid                        ,
 	output logic [  PROGRAM_MEM_ADDR_BITS-1:0] program_mem_read_address                      ,
-	input  logic                               program_mem_read_ready                        ,
-	input  logic [  PROGRAM_MEM_DATA_BITS-1:0] program_mem_read_data                         ,
+	input  wire program_mem_read_ready                        ,
+	input  wire [  PROGRAM_MEM_DATA_BITS-1:0] program_mem_read_data                         ,
 	// Data Memory
 	output logic [      THREADS_PER_BLOCK-1:0] data_mem_read_valid                           ,
 	output logic [     DATA_MEM_ADDR_BITS-1:0] data_mem_read_address [THREADS_PER_BLOCK-1:0] ,
-	input  logic [      THREADS_PER_BLOCK-1:0] data_mem_read_ready                           ,
-	input  logic [     DATA_MEM_DATA_BITS-1:0] data_mem_read_data [THREADS_PER_BLOCK-1:0]    ,
+	input  wire [      THREADS_PER_BLOCK-1:0] data_mem_read_ready                           ,
+	input  wire [     DATA_MEM_DATA_BITS-1:0] data_mem_read_data [THREADS_PER_BLOCK-1:0]    ,
 	output logic [      THREADS_PER_BLOCK-1:0] data_mem_write_valid                          ,
 	output logic [     DATA_MEM_ADDR_BITS-1:0] data_mem_write_address [THREADS_PER_BLOCK-1:0],
 	output logic [     DATA_MEM_DATA_BITS-1:0] data_mem_write_data [THREADS_PER_BLOCK-1:0]   ,
-	input  logic [      THREADS_PER_BLOCK-1:0] data_mem_write_ready
+	input  wire [      THREADS_PER_BLOCK-1:0] data_mem_write_ready
 );
 	logic [     THREADS_PER_BLOCK-1:0] mask; // 1表示对应线程正在运行
 	logic [     THREADS_PER_BLOCK-1:0] mask_d;

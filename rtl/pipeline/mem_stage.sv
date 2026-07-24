@@ -6,30 +6,30 @@ module mem_stage #(
 	parameter int unsigned DATA_MEM_ADDR_BITS = 8,
 	parameter int unsigned DATA_MEM_DATA_BITS = DATA_BITS
 ) (
-	input  logic                            clk              , // 时钟
-	input  logic                            reset            , // 复位
-	input  logic                            start            , // 当前线程运行
-	input  logic [           DATA_BITS-1:0] execute_result   , // EX结果或内存地址
-	input  logic [                     2:0] nzp_result       , // EX生成的NZP
-	input  logic [                     3:0] rd_addr          , // 目标寄存器
-	input  logic                            nzp_write        , // NZP写使能
-	input  logic                            reg_write        , // 通用寄存器写使能
-	input  logic                            mem_read         , // Load控制
-	input  logic                            mem_write        , // Store控制
-	input  logic [           DATA_BITS-1:0] store_data       , // Store数据
-	input  logic                            is_ret           , // RET标志
-	input  logic                            valid            , // EX/MEM数据有效
-	input  logic                            ready_in         , // WB可以接收
+	input  wire clk              , // 时钟
+	input  wire reset            , // 复位
+	input  wire start            , // 当前线程运行
+	input  wire [           DATA_BITS-1:0] execute_result   , // EX结果或内存地址
+	input  wire [                     2:0] nzp_result       , // EX生成的NZP
+	input  wire [                     3:0] rd_addr          , // 目标寄存器
+	input  wire nzp_write        , // NZP写使能
+	input  wire reg_write        , // 通用寄存器写使能
+	input  wire mem_read         , // Load控制
+	input  wire mem_write        , // Store控制
+	input  wire [           DATA_BITS-1:0] store_data       , // Store数据
+	input  wire is_ret           , // RET标志
+	input  wire valid            , // EX/MEM数据有效
+	input  wire ready_in         , // WB可以接收
 
 	output logic                            mem_read_valid   , // 数据内存读请求有效
 	output logic [  DATA_MEM_ADDR_BITS-1:0] mem_read_address , // 数据内存读地址
-	input  logic                            mem_read_ready   , // 数据内存读完成
-	input  logic [  DATA_MEM_DATA_BITS-1:0] mem_read_data    , // 数据内存读返回值
+	input  wire mem_read_ready   , // 数据内存读完成
+	input  wire [  DATA_MEM_DATA_BITS-1:0] mem_read_data    , // 数据内存读返回值
 
 	output logic                            mem_write_valid  , // 数据内存写请求有效
 	output logic [  DATA_MEM_ADDR_BITS-1:0] mem_write_address, // 数据内存写地址
 	output logic [  DATA_MEM_DATA_BITS-1:0] mem_write_data   , // 数据内存写数据
-	input  logic                            mem_write_ready  , // 数据内存写完成
+	input  wire mem_write_ready  , // 数据内存写完成
 
 	// Combinational forwarding information sent toward ID.
 	output logic                            forward_valid      , // 旁路信息有效

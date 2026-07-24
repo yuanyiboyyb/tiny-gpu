@@ -7,25 +7,25 @@ module register_file #(
 	parameter int unsigned DATA_BITS = 8,
 	parameter int unsigned GPR_COUNT = 13
 ) (
-	input  logic                 clk,
-	input  logic                 reset,
+	input  wire clk,
+	input  wire reset,
 
-	input  logic [DATA_BITS-1:0] block_id,
-	input  logic [DATA_BITS-1:0] block_dim,
-	input  logic [DATA_BITS-1:0] thread_id,
+	input  wire [DATA_BITS-1:0] block_id,
+	input  wire [DATA_BITS-1:0] block_dim,
+	input  wire [DATA_BITS-1:0] thread_id,
 
-	input  logic [3:0]           rs_addr,
+	input  wire [3:0]           rs_addr,
 	output logic [DATA_BITS-1:0] rs_data,
-	input  logic [3:0]           rt_addr,
+	input  wire [3:0]           rt_addr,
 	output logic [DATA_BITS-1:0] rt_data,
 
-	input  logic                 write_enable,
-	input  logic [3:0]           write_addr,
-	input  logic [DATA_BITS-1:0] write_data,
+	input  wire write_enable,
+	input  wire [3:0]           write_addr,
+	input  wire [DATA_BITS-1:0] write_data,
 
 	output logic [2:0]           nzp_read_data,
-	input  logic                 nzp_write_enable,
-	input  logic [2:0]           nzp_write_data
+	input  wire nzp_write_enable,
+	input  wire [2:0]           nzp_write_data
 );
 	localparam logic [3:0] REG_BLOCK_ID  = 4'd13;
 	localparam logic [3:0] REG_BLOCK_DIM = 4'd14;

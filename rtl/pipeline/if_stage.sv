@@ -4,19 +4,19 @@ module if_stage #(
 	parameter PROGRAM_MEM_ADDR_BITS = 8 ,
 	parameter PROGRAM_MEM_DATA_BITS = 16
 ) (
-	input  logic                             clk             ,
-	input  logic                             reset           ,
-	input  logic                             start           ,
+	input  wire clk             ,
+	input  wire reset           ,
+	input  wire start           ,
 	// ID/IFID 是否可以接收
-	input  logic                             ready           ,
+	input  wire ready           ,
 	// ID确认跳转时，IF等待Core更新PC，本周期不再取指。
-	input  logic                             pc_write_enable ,
-	input  logic [PROGRAM_MEM_ADDR_BITS-1:0] current_pc      ,
+	input  wire pc_write_enable ,
+	input  wire [PROGRAM_MEM_ADDR_BITS-1:0] current_pc      ,
 	// Program memory
 	output logic                             mem_read_valid  ,
 	output logic [PROGRAM_MEM_ADDR_BITS-1:0] mem_read_address,
-	input  logic                             mem_read_ready  ,
-	input  logic [PROGRAM_MEM_DATA_BITS-1:0] mem_read_data   ,
+	input  wire mem_read_ready  ,
+	input  wire [PROGRAM_MEM_DATA_BITS-1:0] mem_read_data   ,
 	// 输出到 IF/ID
 	output logic [PROGRAM_MEM_DATA_BITS-1:0] instruction     ,
 	output logic                             instruction_flag,
