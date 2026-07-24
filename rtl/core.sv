@@ -51,6 +51,7 @@ module core #(
 	logic [PROGRAM_MEM_ADDR_BITS-1:0] branch_address; // 低编号活动线程提供的分支地址
 	logic [PROGRAM_MEM_ADDR_BITS-1:0] if_next_pc   ; // IF计算的保持或顺序下一地址
 	logic [PROGRAM_MEM_DATA_BITS-1:0] if_instruction; // IF输出指令
+	logic                             if_instruction_flag; // IF指令epoch，每条新指令翻转
 	logic                             if_valid      ; // IF输出指令有效
 
 	always_comb begin
@@ -128,6 +129,7 @@ module core #(
 		.mem_read_ready  (program_mem_read_ready),
 		.mem_read_data   (program_mem_read_data),
 		.instruction     (if_instruction),
+		.instruction_flag(if_instruction_flag),
 		.valid           (if_valid),
 		.next_pc         (if_next_pc)
 	);
@@ -231,6 +233,7 @@ module core #(
 				.reset               (reset),
 				.valid_in            (if_valid),
 				.instruction         (if_instruction),
+				.instruction_flag    (if_instruction_flag),
 				.rf_rs_data          (rf_rs_data),
 				.rf_rt_data          (rf_rt_data),
 				.rf_nzp_data         (rf_nzp_data),

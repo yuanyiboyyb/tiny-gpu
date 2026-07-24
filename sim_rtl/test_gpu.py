@@ -159,7 +159,9 @@ class Memory:
 
 async def setup_gpu(dut, program, data, threads):
     program_memory = Memory(dut, "program", 8, 16, 1)
-    data_memory = Memory(dut, "data", 8, 8, 4)
+    data_memory = Memory(
+        dut, "data", 8, 8, len(dut.data_mem_read_valid)
+    )
     program_memory.load(program)
     data_memory.load(data)
 

@@ -19,6 +19,7 @@ module if_stage #(
 	input  logic [PROGRAM_MEM_DATA_BITS-1:0] mem_read_data   ,
 	// 输出到 IF/ID
 	output logic [PROGRAM_MEM_DATA_BITS-1:0] instruction     ,
+	output logic                             instruction_flag,
 	output logic                             valid           ,
 	output logic [PROGRAM_MEM_ADDR_BITS-1:0] next_pc
 );
@@ -30,6 +31,7 @@ module if_stage #(
 	} if_state_t;
 
 	logic [PROGRAM_MEM_DATA_BITS-1:0] instruction_d;
+	logic                             instruction_flag_d;
 	logic                             valid_d      ;
 	if_state_t                        state_p      ;
 	if_state_t                        state_d      ;
@@ -38,6 +40,7 @@ module if_stage #(
 
 	always_comb begin
 		instruction_d     = instruction;
+		instruction_flag_d = instruction_flag;
 		valid_d           = valid;
 		state_d           = state_p;
 		request_address_d = request_address_p;
@@ -61,6 +64,7 @@ module if_stage #(
 
 					if (mem_read_ready) begin
 						instruction_d = mem_read_data;
+						instruction_flag_d = ~instruction_flag;
 						valid_d       = 1'b1;
 						next_pc       = current_pc + PC_ADD;
 					end else begin
@@ -77,6 +81,7 @@ module if_stage #(
 
 				if (mem_read_ready) begin
 					instruction_d = mem_read_data;
+					instruction_flag_d = ~instruction_flag;
 					valid_d       = 1'b1;
 					next_pc       = request_address_p + PC_ADD;
 					state_d       = IDLE;
@@ -89,12 +94,14 @@ module if_stage #(
 	always_ff @(posedge clk) begin
 		if(reset) begin
 			instruction      <= '0;
+			instruction_flag <= 1'b0;
 			valid            <= '0;
 			state_p          <= IDLE;
 			request_address_p <= '0;
 
 		end else begin
 			instruction      <= instruction_d;
+			instruction_flag <= instruction_flag_d;
 			valid            <= valid_d;
 			state_p          <= state_d;
 			request_address_p <= request_address_d;

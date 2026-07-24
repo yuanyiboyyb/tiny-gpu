@@ -4,7 +4,7 @@
 module gpu #(
 	parameter int DATA_MEM_ADDR_BITS       = 8 ,
 	parameter int DATA_MEM_DATA_BITS       = 8 ,
-	parameter int DATA_MEM_NUM_CHANNELS    = 4 ,
+	parameter int DATA_MEM_NUM_CHANNELS    = 2 ,
 	parameter int PROGRAM_MEM_ADDR_BITS    = 8 ,
 	parameter int PROGRAM_MEM_DATA_BITS    = 16,
 	parameter int PROGRAM_MEM_NUM_CHANNELS = 1 ,

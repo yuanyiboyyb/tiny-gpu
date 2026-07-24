@@ -29,7 +29,5 @@ matadd:
 matmul:
 	$(MAKE) sim TESTCASE=test_matmul
 
-wave:
-	gtkwave dump.vcd
 
 include $(shell cocotb-config --makefiles)/Makefile.sim
