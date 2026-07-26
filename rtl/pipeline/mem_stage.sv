@@ -6,50 +6,50 @@ module mem_stage #(
 	parameter int unsigned DATA_MEM_ADDR_BITS = 8,
 	parameter int unsigned DATA_MEM_DATA_BITS = DATA_BITS
 ) (
-	input  wire clk              , // 时钟
-	input  wire reset            , // 复位
-	input  wire start            , // 当前线程运行
-	input  wire [           DATA_BITS-1:0] execute_result   , // EX结果或内存地址
-	input  wire [                     2:0] nzp_result       , // EX生成的NZP
-	input  wire [                     3:0] rd_addr          , // 目标寄存器
-	input  wire nzp_write        , // NZP写使能
-	input  wire reg_write        , // 通用寄存器写使能
-	input  wire mem_read         , // Load控制
-	input  wire mem_write        , // Store控制
-	input  wire [           DATA_BITS-1:0] store_data       , // Store数据
-	input  wire is_ret           , // RET标志
-	input  wire valid            , // EX/MEM数据有效
-	input  wire ready_in         , // WB可以接收
+	input  wire clk              , // System clock.
+	input  wire reset            , // Resets the memory stage.
+	input  wire start            , // Enables memory handling for this thread.
+	input  wire [           DATA_BITS-1:0] execute_result   , // Supplies the EX result or memory address.
+	input  wire [                     2:0] nzp_result       , // Supplies the EX comparison result.
+	input  wire [                     3:0] rd_addr          , // Supplies the destination register.
+	input  wire nzp_write        , // Enables comparison-state writeback.
+	input  wire reg_write        , // Enables register writeback.
+	input  wire mem_read         , // Marks a load operation.
+	input  wire mem_write        , // Marks a store operation.
+	input  wire [           DATA_BITS-1:0] store_data       , // Supplies store data.
+	input  wire is_ret           , // Marks a return instruction.
+	input  wire valid            , // Marks the EX payload as valid.
+	input  wire ready_in         , // Indicates that WB can accept data.
 
-	output logic                            mem_read_valid   , // 数据内存读请求有效
-	output logic [  DATA_MEM_ADDR_BITS-1:0] mem_read_address , // 数据内存读地址
-	input  wire mem_read_ready   , // 数据内存读完成
-	input  wire [  DATA_MEM_DATA_BITS-1:0] mem_read_data    , // 数据内存读返回值
+	output logic                            mem_read_valid   , // Requests a data-memory read.
+	output logic [  DATA_MEM_ADDR_BITS-1:0] mem_read_address , // Selects the data-memory read address.
+	input  wire mem_read_ready   , // Acknowledges the data-memory read.
+	input  wire [  DATA_MEM_DATA_BITS-1:0] mem_read_data    , // Returns data from memory.
 
-	output logic                            mem_write_valid  , // 数据内存写请求有效
-	output logic [  DATA_MEM_ADDR_BITS-1:0] mem_write_address, // 数据内存写地址
-	output logic [  DATA_MEM_DATA_BITS-1:0] mem_write_data   , // 数据内存写数据
-	input  wire mem_write_ready  , // 数据内存写完成
+	output logic                            mem_write_valid  , // Requests a data-memory write.
+	output logic [  DATA_MEM_ADDR_BITS-1:0] mem_write_address, // Selects the data-memory write address.
+	output logic [  DATA_MEM_DATA_BITS-1:0] mem_write_data   , // Supplies data for the memory write.
+	input  wire mem_write_ready  , // Acknowledges the data-memory write.
 
 	// Combinational forwarding information sent toward ID.
-	output logic                            forward_valid      , // 旁路信息有效
-	output logic                            forward_from_memory, // 1:内存数据，0:EX结果
-	output logic                            forward_ready      , // 当前旁路数据已准备好
-	output logic [           DATA_BITS-1:0] forward_data       , // 实际旁路数据
-	output logic [                     3:0] forward_rd_addr    , // 旁路目标寄存器
-	output logic                            forward_reg_write  , // 旁路通用寄存器写使能
-	output logic                            forward_nzp_write  , // 旁路NZP写使能
-	output logic [                     2:0] forward_nzp_data   , // NZP旁路数据
+	output logic                            forward_valid      , // Marks forwarding information as valid.
+	output logic                            forward_from_memory, // Selects memory data instead of the EX result.
+	output logic                            forward_ready      , // Indicates that forwarded data is ready.
+	output logic [           DATA_BITS-1:0] forward_data       , // Supplies the forwarded value.
+	output logic [                     3:0] forward_rd_addr    , // Identifies the forwarded register.
+	output logic                            forward_reg_write  , // Enables register-result forwarding.
+	output logic                            forward_nzp_write  , // Enables comparison-result forwarding.
+	output logic [                     2:0] forward_nzp_data   , // Supplies the forwarded comparison result.
 
 	// Registered MEM/WB payload.
-	output logic [           DATA_BITS-1:0] execute_result_out, // WB写回数据
-	output logic [                     2:0] nzp_result_out    , // WB的NZP结果
-	output logic [                     3:0] rd_addr_out       , // WB目标寄存器
-	output logic                            nzp_write_out     , // WB的NZP写使能
-	output logic                            reg_write_out     , // WB的寄存器写使能
-	output logic                            is_ret_out        , // WB的RET标志
-	output logic                            valid_out         , // MEM/WB有效
-	output logic                            ready_out           // MEM完成确认
+	output logic [           DATA_BITS-1:0] execute_result_out, // Sends the writeback value to WB.
+	output logic [                     2:0] nzp_result_out    , // Sends the comparison result to WB.
+	output logic [                     3:0] rd_addr_out       , // Sends the destination register to WB.
+	output logic                            nzp_write_out     , // Sends the comparison write control to WB.
+	output logic                            reg_write_out     , // Sends the register write control to WB.
+	output logic                            is_ret_out        , // Sends the return flag to WB.
+	output logic                            valid_out         , // Marks the MEM output as valid.
+	output logic                            ready_out           // Indicates that MEM can accept data.
 );
 	typedef enum logic {
 		IDLE = 1'b0,

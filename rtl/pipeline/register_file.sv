@@ -7,25 +7,25 @@ module register_file #(
 	parameter int unsigned DATA_BITS = 8,
 	parameter int unsigned GPR_COUNT = 13
 ) (
-	input  wire clk,
-	input  wire reset,
+	input  wire clk, // System clock.
+	input  wire reset, // Clears registers and comparison state.
 
-	input  wire [DATA_BITS-1:0] block_id,
-	input  wire [DATA_BITS-1:0] block_dim,
-	input  wire [DATA_BITS-1:0] thread_id,
+	input  wire [DATA_BITS-1:0] block_id, // Supplies the current block ID.
+	input  wire [DATA_BITS-1:0] block_dim, // Supplies the block size.
+	input  wire [DATA_BITS-1:0] thread_id, // Supplies the local thread ID.
 
-	input  wire [3:0]           rs_addr,
-	output logic [DATA_BITS-1:0] rs_data,
-	input  wire [3:0]           rt_addr,
-	output logic [DATA_BITS-1:0] rt_data,
+	input  wire [3:0]           rs_addr, // Selects the first source register.
+	output logic [DATA_BITS-1:0] rs_data, // Returns the first register value.
+	input  wire [3:0]           rt_addr, // Selects the second source register.
+	output logic [DATA_BITS-1:0] rt_data, // Returns the second register value.
 
-	input  wire write_enable,
-	input  wire [3:0]           write_addr,
-	input  wire [DATA_BITS-1:0] write_data,
+	input  wire write_enable, // Enables a general-purpose register write.
+	input  wire [3:0]           write_addr, // Selects the destination register.
+	input  wire [DATA_BITS-1:0] write_data, // Supplies the register write value.
 
-	output logic [2:0]           nzp_read_data,
-	input  wire nzp_write_enable,
-	input  wire [2:0]           nzp_write_data
+	output logic [2:0]           nzp_read_data, // Returns the comparison state.
+	input  wire nzp_write_enable, // Enables a comparison-state write.
+	input  wire [2:0]           nzp_write_data // Supplies the comparison-state value.
 );
 	localparam logic [3:0] REG_BLOCK_ID  = 4'd13;
 	localparam logic [3:0] REG_BLOCK_DIM = 4'd14;
@@ -37,7 +37,7 @@ module register_file #(
 	logic [2:0]           nzp;
 	logic [2:0]           nzp_d;
 
-	function automatic logic [DATA_BITS-1:0] read_register(input logic [3:0] address);begin
+	function automatic logic [DATA_BITS-1:0] read_register(input logic [3:0] address); begin // Selects the register to read.
 			if (address < GPR_LIMIT)
 				read_register = gpr[address];
 			else begin

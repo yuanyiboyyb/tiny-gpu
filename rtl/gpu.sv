@@ -11,28 +11,28 @@ module gpu #(
 	parameter int NUM_CORES                = 2 ,
 	parameter int THREADS_PER_BLOCK        = 4
 ) (
-	input  wire clk                                                ,
-	input  wire reset                                              ,
+	input  wire clk                                                , // System clock.
+	input  wire reset                                              , // Resets the GPU.
 	// Kernel Execution
-	input  wire start                                              ,
-	output logic                                done                                               ,
+	input  wire start                                              , // Starts kernel execution.
+	output logic                                done                                               , // Reports kernel completion.
 	// Device Control Register
-	input  wire device_control_write_enable                        ,
-	input  wire [                         7:0] device_control_data                                ,
+	input  wire device_control_write_enable                        , // Enables a device-control write.
+	input  wire [                         7:0] device_control_data                                , // Supplies device-control data.
 	// Program Memory
-	output logic [PROGRAM_MEM_NUM_CHANNELS-1:0] program_mem_read_valid                             ,
-	output logic [   PROGRAM_MEM_ADDR_BITS-1:0] program_mem_read_address [PROGRAM_MEM_NUM_CHANNELS-1:0],
-	input  wire [PROGRAM_MEM_NUM_CHANNELS-1:0] program_mem_read_ready                             ,
-	input  wire [   PROGRAM_MEM_DATA_BITS-1:0] program_mem_read_data [PROGRAM_MEM_NUM_CHANNELS-1:0],
+	output logic [PROGRAM_MEM_NUM_CHANNELS-1:0] program_mem_read_valid                             , // Requests program-memory reads.
+	output logic [   PROGRAM_MEM_ADDR_BITS-1:0] program_mem_read_address [PROGRAM_MEM_NUM_CHANNELS-1:0], // Selects program-memory addresses.
+	input  wire [PROGRAM_MEM_NUM_CHANNELS-1:0] program_mem_read_ready                             , // Acknowledges program-memory reads.
+	input  wire [   PROGRAM_MEM_DATA_BITS-1:0] program_mem_read_data [PROGRAM_MEM_NUM_CHANNELS-1:0], // Returns program-memory data.
 	// Data Memory
-	output logic [   DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_valid                                ,
-	output logic [      DATA_MEM_ADDR_BITS-1:0] data_mem_read_address [DATA_MEM_NUM_CHANNELS-1:0]  ,
-	input  wire [   DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_ready                                ,
-	input  wire [      DATA_MEM_DATA_BITS-1:0] data_mem_read_data [DATA_MEM_NUM_CHANNELS-1:0]     ,
-	output logic [   DATA_MEM_NUM_CHANNELS-1:0] data_mem_write_valid                               ,
-	output logic [      DATA_MEM_ADDR_BITS-1:0] data_mem_write_address [DATA_MEM_NUM_CHANNELS-1:0] ,
-	output logic [      DATA_MEM_DATA_BITS-1:0] data_mem_write_data [DATA_MEM_NUM_CHANNELS-1:0]    ,
-	input  wire [   DATA_MEM_NUM_CHANNELS-1:0] data_mem_write_ready
+	output logic [   DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_valid                                , // Requests data-memory reads.
+	output logic [      DATA_MEM_ADDR_BITS-1:0] data_mem_read_address [DATA_MEM_NUM_CHANNELS-1:0]  , // Selects data-memory read addresses.
+	input  wire [   DATA_MEM_NUM_CHANNELS-1:0] data_mem_read_ready                                , // Acknowledges data-memory reads.
+	input  wire [      DATA_MEM_DATA_BITS-1:0] data_mem_read_data [DATA_MEM_NUM_CHANNELS-1:0]     , // Returns data-memory read values.
+	output logic [   DATA_MEM_NUM_CHANNELS-1:0] data_mem_write_valid                               , // Requests data-memory writes.
+	output logic [      DATA_MEM_ADDR_BITS-1:0] data_mem_write_address [DATA_MEM_NUM_CHANNELS-1:0] , // Selects data-memory write addresses.
+	output logic [      DATA_MEM_DATA_BITS-1:0] data_mem_write_data [DATA_MEM_NUM_CHANNELS-1:0]    , // Supplies data-memory write values.
+	input  wire [   DATA_MEM_NUM_CHANNELS-1:0] data_mem_write_ready                                  // Acknowledges data-memory writes.
 );
 	//dcr
 	logic [7:0] thread_count;

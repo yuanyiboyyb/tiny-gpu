@@ -5,25 +5,25 @@ module if_stage #(
 	parameter PROGRAM_MEM_DATA_BITS = 16,
 	parameter MASK_BITS             = 4
 ) (
-	input  wire clk             ,
-	input  wire reset           ,
-	input  wire start           ,
+	input  wire clk             , // System clock.
+	input  wire reset           , // Resets the fetch stage.
+	input  wire start           , // Enables instruction fetching.
 	// ID/IFID 是否可以接收
-	input  wire ready           ,
-	input  wire [PROGRAM_MEM_ADDR_BITS-1:0] current_pc      ,
-	input  wire [             MASK_BITS-1:0] current_mask    ,
+	input  wire ready           , // Indicates that ID can accept an instruction.
+	input  wire [PROGRAM_MEM_ADDR_BITS-1:0] current_pc      , // Gives the next fetch address.
+	input  wire [             MASK_BITS-1:0] current_mask    , // Gives the active threads for the fetch.
 	// Program memory
-	output logic                             mem_read_valid  ,
-	output logic [PROGRAM_MEM_ADDR_BITS-1:0] mem_read_address,
-	input  wire mem_read_ready  ,
-	input  wire [PROGRAM_MEM_DATA_BITS-1:0] mem_read_data   ,
+	output logic                             mem_read_valid  , // Requests an instruction read.
+	output logic [PROGRAM_MEM_ADDR_BITS-1:0] mem_read_address, // Selects the instruction address.
+	input  wire mem_read_ready  , // Acknowledges the instruction read.
+	input  wire [PROGRAM_MEM_DATA_BITS-1:0] mem_read_data   , // Returns the fetched instruction.
 	// 输出到 IF/ID
-	output logic [PROGRAM_MEM_DATA_BITS-1:0] instruction     ,
-	output logic [PROGRAM_MEM_ADDR_BITS-1:0] instruction_pc  ,
-	output logic [             MASK_BITS-1:0] instruction_mask,
-	output logic                             instruction_flag,
-	output logic                             valid           ,
-	output logic [PROGRAM_MEM_ADDR_BITS-1:0] next_pc
+	output logic [PROGRAM_MEM_DATA_BITS-1:0] instruction     , // Sends the fetched instruction to ID.
+	output logic [PROGRAM_MEM_ADDR_BITS-1:0] instruction_pc  , // Sends the instruction address to ID.
+	output logic [             MASK_BITS-1:0] instruction_mask, // Sends the fetch-time thread mask to ID.
+	output logic                             instruction_flag, // Toggles for each accepted instruction.
+	output logic                             valid           , // Marks the instruction output as valid.
+	output logic [PROGRAM_MEM_ADDR_BITS-1:0] next_pc           // Provides the sequential next address.
 );
 	localparam PC_ADD = PROGRAM_MEM_ADDR_BITS'(PROGRAM_MEM_DATA_BITS/8);
 

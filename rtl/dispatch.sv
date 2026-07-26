@@ -9,19 +9,19 @@ module dispatch #(
 	parameter NUM_CORES         = 2,
 	parameter THREADS_PER_BLOCK = 4
 ) (
-	input  wire clk                              ,
-	input  wire reset                            ,
-	input  wire start                            ,
+	input  wire clk                              , // System clock.
+	input  wire reset                            , // Resets the dispatcher.
+	input  wire start                            , // Starts kernel dispatch.
 	// Kernel Metadata
-	input  wire [                        7:0] thread_count                     ,
+	input  wire [                        7:0] thread_count                     , // Gives the total thread count.
 	// Core States
-	input  wire [              NUM_CORES-1:0] core_done                        ,
-	output logic [              NUM_CORES-1:0] core_start                       ,
-	output logic [              NUM_CORES-1:0] core_reset                       ,
-	output logic [                        7:0] core_block_id [NUM_CORES-1:0]    ,
-	output logic [$clog2(THREADS_PER_BLOCK):0] core_thread_count [NUM_CORES-1:0],
+	input  wire [              NUM_CORES-1:0] core_done                        , // Reports completed cores.
+	output logic [              NUM_CORES-1:0] core_start                       , // Starts assigned cores.
+	output logic [              NUM_CORES-1:0] core_reset                       , // Resets individual cores.
+	output logic [                        7:0] core_block_id [NUM_CORES-1:0]    , // Assigns block IDs to cores.
+	output logic [$clog2(THREADS_PER_BLOCK):0] core_thread_count [NUM_CORES-1:0], // Assigns thread counts to cores.
 	// Kernel Execution
-	output logic                               done
+	output logic                               done // Reports kernel completion.
 );
 	typedef enum logic [1:0] {
 		IDLE = 2'b00,

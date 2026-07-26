@@ -12,28 +12,28 @@ module core #(
 	parameter PROGRAM_MEM_DATA_BITS = 16,
 	parameter THREADS_PER_BLOCK     = 4
 ) (
-	input  wire clk                                           ,
-	input  wire reset                                         ,
+	input  wire clk                                           , // System clock.
+	input  wire reset                                         , // Resets the core state.
 	// Kernel Execution
-	input  wire start                                         ,
-	output logic                               done                                          ,
+	input  wire start                                         , // Starts block execution.
+	output logic                               done                                          , // Reports block completion.
 	// Block Metadata
-	input  wire [                        7:0] block_id                                      ,
-	input  wire [$clog2(THREADS_PER_BLOCK):0] thread_count                                  ,
+	input  wire [                        7:0] block_id                                      , // Identifies the assigned block.
+	input  wire [$clog2(THREADS_PER_BLOCK):0] thread_count                                  , // Gives the active thread count.
 	// Program Memory
-	output logic                               program_mem_read_valid                        ,
-	output logic [  PROGRAM_MEM_ADDR_BITS-1:0] program_mem_read_address                      ,
-	input  wire program_mem_read_ready                        ,
-	input  wire [  PROGRAM_MEM_DATA_BITS-1:0] program_mem_read_data                         ,
+	output logic                               program_mem_read_valid                        , // Requests an instruction read.
+	output logic [  PROGRAM_MEM_ADDR_BITS-1:0] program_mem_read_address                      , // Selects the instruction address.
+	input  wire program_mem_read_ready                        , // Acknowledges the instruction read.
+	input  wire [  PROGRAM_MEM_DATA_BITS-1:0] program_mem_read_data                         , // Returns the fetched instruction.
 	// Data Memory
-	output logic [      THREADS_PER_BLOCK-1:0] data_mem_read_valid                           ,
-	output logic [     DATA_MEM_ADDR_BITS-1:0] data_mem_read_address [THREADS_PER_BLOCK-1:0] ,
-	input  wire [      THREADS_PER_BLOCK-1:0] data_mem_read_ready                           ,
-	input  wire [     DATA_MEM_DATA_BITS-1:0] data_mem_read_data [THREADS_PER_BLOCK-1:0]    ,
-	output logic [      THREADS_PER_BLOCK-1:0] data_mem_write_valid                          ,
-	output logic [     DATA_MEM_ADDR_BITS-1:0] data_mem_write_address [THREADS_PER_BLOCK-1:0],
-	output logic [     DATA_MEM_DATA_BITS-1:0] data_mem_write_data [THREADS_PER_BLOCK-1:0]   ,
-	input  wire [      THREADS_PER_BLOCK-1:0] data_mem_write_ready
+	output logic [      THREADS_PER_BLOCK-1:0] data_mem_read_valid                           , // Requests per-thread data reads.
+	output logic [     DATA_MEM_ADDR_BITS-1:0] data_mem_read_address [THREADS_PER_BLOCK-1:0] , // Selects per-thread read addresses.
+	input  wire [      THREADS_PER_BLOCK-1:0] data_mem_read_ready                           , // Acknowledges per-thread reads.
+	input  wire [     DATA_MEM_DATA_BITS-1:0] data_mem_read_data [THREADS_PER_BLOCK-1:0]    , // Returns per-thread read data.
+	output logic [      THREADS_PER_BLOCK-1:0] data_mem_write_valid                          , // Requests per-thread data writes.
+	output logic [     DATA_MEM_ADDR_BITS-1:0] data_mem_write_address [THREADS_PER_BLOCK-1:0], // Selects per-thread write addresses.
+	output logic [     DATA_MEM_DATA_BITS-1:0] data_mem_write_data [THREADS_PER_BLOCK-1:0]   , // Supplies per-thread write data.
+	input  wire [      THREADS_PER_BLOCK-1:0] data_mem_write_ready                             // Acknowledges per-thread writes.
 );
 	logic [     THREADS_PER_BLOCK-1:0] mask; // 1表示对应线程正在运行
 	logic [     THREADS_PER_BLOCK-1:0] mask_d;

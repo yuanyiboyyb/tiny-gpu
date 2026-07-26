@@ -8,28 +8,28 @@ module memory_controller #(
 	parameter int unsigned NUM_CHANNELS  = 1,
 	parameter bit          WRITE_ENABLE  = 1'b1
 ) (
-	input  wire clk,
-	input  wire reset,
+	input  wire clk, // System clock.
+	input  wire reset, // Resets controller state.
 
-	input  wire [     NUM_CONSUMERS-1:0] consumer_read_valid,
-	input  wire [        ADDR_BITS-1:0] consumer_read_address [NUM_CONSUMERS-1:0],
-	output logic [     NUM_CONSUMERS-1:0] consumer_read_ready,
-	output logic [        DATA_BITS-1:0] consumer_read_data    [NUM_CONSUMERS-1:0],
+	input  wire [     NUM_CONSUMERS-1:0] consumer_read_valid, // Receives consumer read requests.
+	input  wire [        ADDR_BITS-1:0] consumer_read_address [NUM_CONSUMERS-1:0], // Receives consumer read addresses.
+	output logic [     NUM_CONSUMERS-1:0] consumer_read_ready, // Acknowledges consumer reads.
+	output logic [        DATA_BITS-1:0] consumer_read_data    [NUM_CONSUMERS-1:0], // Returns data to consumers.
 
-	input  wire [     NUM_CONSUMERS-1:0] consumer_write_valid,
-	input  wire [        ADDR_BITS-1:0] consumer_write_address[NUM_CONSUMERS-1:0],
-	input  wire [        DATA_BITS-1:0] consumer_write_data   [NUM_CONSUMERS-1:0],
-	output logic [     NUM_CONSUMERS-1:0] consumer_write_ready,
+	input  wire [     NUM_CONSUMERS-1:0] consumer_write_valid, // Receives consumer write requests.
+	input  wire [        ADDR_BITS-1:0] consumer_write_address[NUM_CONSUMERS-1:0], // Receives consumer write addresses.
+	input  wire [        DATA_BITS-1:0] consumer_write_data   [NUM_CONSUMERS-1:0], // Receives consumer write data.
+	output logic [     NUM_CONSUMERS-1:0] consumer_write_ready, // Acknowledges consumer writes.
 
-	output logic [       NUM_CHANNELS-1:0] mem_read_valid,
-	output logic [          ADDR_BITS-1:0] mem_read_address[NUM_CHANNELS-1:0],
-	input  wire [       NUM_CHANNELS-1:0] mem_read_ready,
-	input  wire [          DATA_BITS-1:0] mem_read_data   [NUM_CHANNELS-1:0],
+	output logic [       NUM_CHANNELS-1:0] mem_read_valid, // Issues channel read requests.
+	output logic [          ADDR_BITS-1:0] mem_read_address[NUM_CHANNELS-1:0], // Selects channel read addresses.
+	input  wire [       NUM_CHANNELS-1:0] mem_read_ready, // Receives channel read acknowledgements.
+	input  wire [          DATA_BITS-1:0] mem_read_data   [NUM_CHANNELS-1:0], // Receives channel read data.
 
-	output logic [       NUM_CHANNELS-1:0] mem_write_valid,
-	output logic [          ADDR_BITS-1:0] mem_write_address[NUM_CHANNELS-1:0],
-	output logic [          DATA_BITS-1:0] mem_write_data   [NUM_CHANNELS-1:0],
-	input  wire [       NUM_CHANNELS-1:0] mem_write_ready
+	output logic [       NUM_CHANNELS-1:0] mem_write_valid, // Issues channel write requests.
+	output logic [          ADDR_BITS-1:0] mem_write_address[NUM_CHANNELS-1:0], // Selects channel write addresses.
+	output logic [          DATA_BITS-1:0] mem_write_data   [NUM_CHANNELS-1:0], // Supplies channel write data.
+	input  wire [       NUM_CHANNELS-1:0] mem_write_ready // Receives channel write acknowledgements.
 );
 	localparam int unsigned CONSUMER_INDEX_BITS =
 		(NUM_CONSUMERS <= 1) ? 1 : $clog2(NUM_CONSUMERS);

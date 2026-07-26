@@ -10,60 +10,60 @@ module id_stage
 	parameter int unsigned PC_BITS               = 8 ,
 	parameter int unsigned MASK_BITS             = 4
 ) (
-	input  wire                              start                  ,
-	input  wire                              clk                    ,
-	input  wire                              reset                  ,
-	input  wire                              valid_in               ,
-	input  wire  [PROGRAM_MEM_DATA_BITS-1:0] instruction            ,
-	input  wire  [              PC_BITS-1:0] instruction_pc         ,
-	input  wire  [            MASK_BITS-1:0] instruction_mask       ,
-	input  wire                              instruction_flag       ,
+	input  wire                              start                  , // Enables this thread's decoder.
+	input  wire                              clk                    , // System clock.
+	input  wire                              reset                  , // Resets the decode stage.
+	input  wire                              valid_in               , // Marks the fetched instruction as valid.
+	input  wire  [PROGRAM_MEM_DATA_BITS-1:0] instruction            , // Carries the instruction to decode.
+	input  wire  [              PC_BITS-1:0] instruction_pc         , // Carries the instruction address.
+	input  wire  [            MASK_BITS-1:0] instruction_mask       , // Carries the instruction's thread mask.
+	input  wire                              instruction_flag       , // Identifies a newly fetched instruction.
 	// Per-thread metadata exposed as read-only R13/R14/R15.
-	input  wire  [            DATA_BITS-1:0] rf_rs_data             ,
-	input  wire  [            DATA_BITS-1:0] rf_rt_data             ,
-	input  wire  [                      2:0] rf_nzp_data            ,
+	input  wire  [            DATA_BITS-1:0] rf_rs_data             , // Supplies the first register operand.
+	input  wire  [            DATA_BITS-1:0] rf_rt_data             , // Supplies the second register operand.
+	input  wire  [                      2:0] rf_nzp_data            , // Supplies the saved comparison state.
 	// Forwarding data from EX stage.
-	input  wire                              ex_reg_write_enable    ,
-	input  wire  [                      3:0] ex_reg_write_addr      ,
-	input  wire  [            DATA_BITS-1:0] ex_reg_write_data      ,
-	input  wire                              ex_nzp_write_enable    ,
-	input  wire  [                      2:0] ex_nzp_write_data      ,
+	input  wire                              ex_reg_write_enable    , // Enables EX register forwarding.
+	input  wire  [                      3:0] ex_reg_write_addr      , // Identifies the EX destination register.
+	input  wire  [            DATA_BITS-1:0] ex_reg_write_data      , // Supplies the EX forwarding value.
+	input  wire                              ex_nzp_write_enable    , // Enables EX comparison forwarding.
+	input  wire  [                      2:0] ex_nzp_write_data      , // Supplies the EX comparison result.
 	// Forwarding data from MEM stage.
-	input  wire                              mem_reg_write_enable   ,
-	input  wire  [                      3:0] mem_reg_write_addr     ,
-	input  wire  [            DATA_BITS-1:0] mem_reg_write_data     ,
-	input  wire                              mem_forward_valid      ,
-	input  wire                              mem_forward_from_memory,
-	input  wire                              mem_forward_ready      ,
-	input  wire                              mem_nzp_write_enable   ,
-	input  wire  [                      2:0] mem_nzp_write_data     ,
-	input  wire                              ready_in               ,
-	input  wire  [              PC_BITS-1:0] branch_top_pc          ,
-	input  wire  [            MASK_BITS-1:0] branch_top_mask        ,
-	input  wire                              branch_empty           ,
+	input  wire                              mem_reg_write_enable   , // Enables MEM register forwarding.
+	input  wire  [                      3:0] mem_reg_write_addr     , // Identifies the MEM destination register.
+	input  wire  [            DATA_BITS-1:0] mem_reg_write_data     , // Supplies the MEM forwarding value.
+	input  wire                              mem_forward_valid      , // Marks the MEM forwarding result as valid.
+	input  wire                              mem_forward_from_memory, // Identifies a forwarded load result.
+	input  wire                              mem_forward_ready      , // Indicates that forwarded load data is ready.
+	input  wire                              mem_nzp_write_enable   , // Enables MEM comparison forwarding.
+	input  wire  [                      2:0] mem_nzp_write_data     , // Supplies the MEM comparison result.
+	input  wire                              ready_in               , // Indicates that EX can accept decoded data.
+	input  wire  [              PC_BITS-1:0] branch_top_pc          , // Supplies the top branch-stack PC.
+	input  wire  [            MASK_BITS-1:0] branch_top_mask        , // Supplies the top branch-stack mask.
+	input  wire                              branch_empty           , // Indicates that the branch stack is empty.
 	// Decoded source addresses are also available to the hazard unit.
-	output logic [                      3:0] rd_addr                ,
-	output logic [            DATA_BITS-1:0] rs_data                ,
-	output logic [            DATA_BITS-1:0] rt_data                ,
-	output logic [            DATA_BITS-1:0] imm                    ,
-	output logic [                      1:0] alu_op                 ,
-	output logic                             alu_src                ,
-	output logic                             alu_enable             ,
-	output logic                             nzp_write              ,
-	output logic                             reg_write              ,
-	output logic                             mem_read               ,
-	output logic                             mem_write              ,
-	output logic [            DATA_BITS-1:0] store_data             ,
+	output logic [                      3:0] rd_addr                , // Selects the destination register.
+	output logic [            DATA_BITS-1:0] rs_data                , // Sends the first operand to EX.
+	output logic [            DATA_BITS-1:0] rt_data                , // Sends the second operand to EX.
+	output logic [            DATA_BITS-1:0] imm                    , // Sends the decoded immediate value.
+	output logic [                      1:0] alu_op                 , // Selects the ALU operation.
+	output logic                             alu_src                , // Selects the immediate ALU source.
+	output logic                             alu_enable             , // Enables the ALU operation.
+	output logic                             nzp_write              , // Enables comparison-state writeback.
+	output logic                             reg_write              , // Enables register writeback.
+	output logic                             mem_read               , // Requests a data-memory read.
+	output logic                             mem_write              , // Requests a data-memory write.
+	output logic [            DATA_BITS-1:0] store_data             , // Supplies data for a memory write.
 	// A taken branch is resolved in ID and redirects the shared PC immediately.
-	output logic                             pc_write_enable        ,
-	output logic                             branch_unconditional   ,
-	output logic [PROGRAM_MEM_ADDR_BITS-1:0] branch_offset          ,
-	output logic                             is_ret                 ,
-	output logic                             valid                  ,
-	output logic                             ready_out              ,
-	output stack_operation_t                 change_branch_enable   ,
-	output logic [              PC_BITS-1:0] change_branch_pc       ,
-	output logic [            MASK_BITS-1:0] change_branch_mask
+	output logic                             pc_write_enable        , // Requests a branch redirect.
+	output logic                             branch_unconditional   , // Marks an unconditional branch.
+	output logic [PROGRAM_MEM_ADDR_BITS-1:0] branch_offset          , // Supplies the branch target address.
+	output logic                             is_ret                 , // Marks a return instruction.
+	output logic                             valid                  , // Marks the decoded output as valid.
+	output logic                             ready_out              , // Indicates readiness for a new instruction.
+	output stack_operation_t                 change_branch_enable   , // Requests a branch-stack operation.
+	output logic [              PC_BITS-1:0] change_branch_pc       , // Supplies the branch-stack PC input.
+	output logic [            MASK_BITS-1:0] change_branch_mask       // Supplies the branch-stack mask input.
 );
 	localparam logic [3:0] OP_NOP   = 4'b0000;
 	localparam logic [3:0] OP_BRNZP = 4'b0001;
@@ -107,8 +107,8 @@ module id_stage
 	logic [          3:0] rt_addr            ;
 
 	function automatic logic [DATA_BITS-1:0] read_register_data(
-			input logic [3:0]           address,
-			input logic [DATA_BITS-1:0] register_data
+			input logic [3:0]           address, // Selects the register to read.
+			input logic [DATA_BITS-1:0] register_data // Supplies the register-file value.
 		);
 		if (ex_reg_write_enable && (ex_reg_write_addr == address))
 			read_register_data = ex_reg_write_data;
@@ -119,7 +119,7 @@ module id_stage
 	endfunction
 
 	function automatic logic [2:0] read_nzp_data(
-			input logic [2:0] register_nzp_data
+			input logic [2:0] register_nzp_data // Supplies the register-file NZP value.
 		);
 		if (ex_nzp_write_enable)
 			read_nzp_data = ex_nzp_write_data;
@@ -130,7 +130,7 @@ module id_stage
 	endfunction
 
 	function automatic logic register_load_wait(
-			input logic [3:0] address
+			input logic [3:0] address // Selects the source register to check.
 		);
 		if (mem_reg_write_enable &&
 			mem_forward_valid &&

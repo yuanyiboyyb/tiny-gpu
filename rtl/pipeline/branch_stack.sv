@@ -15,16 +15,16 @@ module branch_stack #(
 	parameter int unsigned STACK_CAPACITY = 4,
 	parameter int unsigned INITIAL_TOP    = 1
 ) (
-	input  wire clk,
-	input  wire reset,
+	input  wire clk, // System clock.
+	input  wire reset, // Resets the stack contents.
 
-	input  branch_stack_pkg::stack_operation_t operation,
-	input  wire [PC_BITS-1:0]                  pc_in,
-	input  wire [MASK_BITS-1:0] mask_in,
+	input  branch_stack_pkg::stack_operation_t operation, // Selects the stack operation.
+	input  wire [PC_BITS-1:0]                  pc_in, // Supplies the PC to store.
+	input  wire [MASK_BITS-1:0] mask_in, // Supplies the thread mask to store.
 
-	output logic [PC_BITS-1:0]   pc_out,
-	output logic [MASK_BITS-1:0] mask_out,
-	output logic                 empty
+	output logic [PC_BITS-1:0]   pc_out, // Returns the top PC.
+	output logic [MASK_BITS-1:0] mask_out, // Returns the top thread mask.
+	output logic                 empty // Indicates that the stack has no entries.
 );
 	import branch_stack_pkg::*;
 
