@@ -41,38 +41,129 @@ module core #(
 	logic [PROGRAM_MEM_ADDR_BITS-1:0] pc_d; // 下一周期程序计数器
 	logic [     THREADS_PER_BLOCK-1:0] id_ready_vector; // 每一位为对应ID段的ready_out
 	logic [     THREADS_PER_BLOCK-1:0] pc_write_enable_vector; // 每一位为对应ID段的实际跳转请求
+	logic [     THREADS_PER_BLOCK-1:0] branch_unconditional_vector; // 每一位为对应ID段的无条件跳转
 	logic [PROGRAM_MEM_ADDR_BITS-1:0] branch_offset_vector [THREADS_PER_BLOCK-1:0]; // 各线程分支地址
+	branch_stack_pkg::stack_operation_t change_branch_enable_vector [THREADS_PER_BLOCK-1:0]; // 每一位为对应ID段的栈操作
+	logic [PROGRAM_MEM_ADDR_BITS-1:0] change_branch_pc_vector [THREADS_PER_BLOCK-1:0]; // 各ID段请求切换的PC
+	logic [     THREADS_PER_BLOCK-1:0] change_branch_mask_vector [THREADS_PER_BLOCK-1:0]; // 各ID段请求切换的mask
 	logic [     THREADS_PER_BLOCK-1:0] ret_vector; // 每一位为对应线程的RET完成信号
 	logic                             if_ready      ; // 所有ID段ready_out的归约或，通知IF是否继续
 	logic                             pc_write_enable; // 任一ID段确定分支成立
+	logic                             conditional_pc_write_enable; // 任一ID段确定条件分支成立
+	logic                             change_branch_request; // 任一ID段请求操作分支栈
+	branch_stack_pkg::stack_operation_t change_branch_operation; // 聚合后的ID分支栈操作
+	logic [PROGRAM_MEM_ADDR_BITS-1:0] change_branch_pc; // 聚合后的ID分支PC
+	logic [     THREADS_PER_BLOCK-1:0] change_branch_mask; // 聚合后的ID分支mask
 	logic                             running      ; // Core正在执行当前任务
 	logic                             running_d    ;
 	logic                             start_q      ; // 用于检测start上升沿
-	logic [PROGRAM_MEM_ADDR_BITS-1:0] branch_address; // 低编号活动线程提供的分支地址
+	logic [PROGRAM_MEM_ADDR_BITS-1:0] branch_address_one; // 第一组跳转地址
+	logic [PROGRAM_MEM_ADDR_BITS-1:0] branch_address_two; // 第二组跳转地址
+	logic [     THREADS_PER_BLOCK-1:0] branch_mask_one; // 第一组跳转线程mask
+	logic [     THREADS_PER_BLOCK-1:0] branch_mask_two; // 第二组跳转线程mask
 	logic [PROGRAM_MEM_ADDR_BITS-1:0] if_next_pc   ; // IF计算的保持或顺序下一地址
+	logic [PROGRAM_MEM_ADDR_BITS-1:0] if_current_pc; // 旁路后的IF取指PC
+	logic [     THREADS_PER_BLOCK-1:0] if_current_mask; // 旁路后的IF取指mask
 	logic [PROGRAM_MEM_DATA_BITS-1:0] if_instruction; // IF输出指令
+	logic [PROGRAM_MEM_ADDR_BITS-1:0] if_instruction_pc; // IF输出指令对应PC
+	logic [     THREADS_PER_BLOCK-1:0] if_instruction_mask; // IF输出指令对应mask
 	logic                             if_instruction_flag; // IF指令epoch，每条新指令翻转
 	logic                             if_valid      ; // IF输出指令有效
+	branch_stack_pkg::stack_operation_t branch_stack_operation; // 给分支栈的操作
+	logic [PROGRAM_MEM_ADDR_BITS-1:0] branch_stack_pc; // 写入分支栈的PC
+	logic [     THREADS_PER_BLOCK-1:0] branch_stack_mask; // 写入分支栈的mask
+	logic [PROGRAM_MEM_ADDR_BITS-1:0] branch_top_pc; // 分支栈顶PC
+	logic [     THREADS_PER_BLOCK-1:0] branch_top_mask; // 分支栈顶mask
+	logic                             branch_empty; // 分支栈是否为空
+
+	branch_stack #(
+		.PC_BITS        (PROGRAM_MEM_ADDR_BITS),
+		.MASK_BITS      (THREADS_PER_BLOCK),
+		.STACK_CAPACITY (4),
+		.INITIAL_TOP    (1)
+	) branch_stack_example_instance (
+		.clk      (clk),
+		.reset    (reset),
+		.operation(branch_stack_operation),
+		.pc_in    (branch_stack_pc),
+		.mask_in  (branch_stack_mask),
+		.pc_out   (branch_top_pc),
+		.mask_out (branch_top_mask),
+		.empty    (branch_empty)
+	);
 
 	always_comb begin
-		if_ready        = &(id_ready_vector | ~mask);
 		pc_write_enable = |(pc_write_enable_vector & mask);
-		branch_address  = '0;
+		conditional_pc_write_enable =
+			|(pc_write_enable_vector & mask & ~branch_unconditional_vector);
+		// 跳转成立时通过总ready阻止IF在旧PC上发起顺序取指。
+		if_ready        = &(id_ready_vector | ~mask) && !pc_write_enable;
+		mask_d          = mask;
+		running_d       = running;
+		done            = 1'b0;
+		branch_address_one = '0;
+		branch_address_two = '0;
+		branch_mask_one    = '0;
+		branch_mask_two    = '0;
+		branch_stack_operation = branch_stack_pkg::STACK_IDLE;
+		branch_stack_pc        = '0;
+		branch_stack_mask      = '0;
+		change_branch_request  = 1'b0;
+		change_branch_operation = branch_stack_pkg::STACK_IDLE;
+		change_branch_pc       = '0;
+		change_branch_mask     = '0;
 		begin
-			logic branch_address_found;
-			branch_address_found = 1'b0;
+			logic branch_address_one_found;
+			logic branch_address_two_found;
+			branch_address_one_found = 1'b0;
+			branch_address_two_found = 1'b0;
+
 			for (int unsigned index = 0; index < THREADS_PER_BLOCK; index = index + 1) begin
-				if (!branch_address_found && mask[index] &&
-				    pc_write_enable_vector[index]) begin
-					branch_address       = branch_offset_vector[index];
-					branch_address_found = 1'b1;
+				if (mask[index] && pc_write_enable_vector[index]) begin
+					if (!branch_address_one_found) begin
+						branch_address_one        = branch_offset_vector[index];
+						branch_mask_one[index]    = 1'b1;
+						branch_address_one_found  = 1'b1;
+					end else if (branch_offset_vector[index] == branch_address_one) begin
+						branch_mask_one[index] = 1'b1;
+					end else if (!branch_address_two_found) begin
+						branch_address_two        = branch_offset_vector[index];
+						branch_mask_two[index]    = 1'b1;
+						branch_address_two_found  = 1'b1;
+					end else if (branch_offset_vector[index] == branch_address_two) begin
+						branch_mask_two[index] = 1'b1;
+					end
+				end else if (mask[index] && conditional_pc_write_enable) begin
+					// 活动但未跳转的线程沿顺序路径执行，作为第二组上下文压栈。
+					branch_address_two       = if_instruction_pc +
+						PROGRAM_MEM_ADDR_BITS'(PROGRAM_MEM_DATA_BITS / 8);
+					branch_mask_two[index]   = 1'b1;
+					branch_address_two_found = 1'b1;
 				end
 			end
-		end
 
-		mask_d    = mask;
-		running_d = running;
-		done      = 1'b0;
+			if (branch_address_two_found) begin
+				branch_stack_operation = branch_stack_pkg::STACK_PUSH;
+				branch_stack_pc   = branch_address_two;
+				branch_stack_mask = branch_mask_two;
+			end
+
+			for (int unsigned index = 0; index < THREADS_PER_BLOCK; index = index + 1) begin
+				if (!change_branch_request && mask[index] &&
+				    (change_branch_enable_vector[index] != branch_stack_pkg::STACK_IDLE)) begin
+					change_branch_request   = 1'b1;
+					change_branch_operation = change_branch_enable_vector[index];
+					change_branch_pc        = change_branch_pc_vector[index];
+					change_branch_mask      = change_branch_mask_vector[index];
+				end
+			end
+
+			if (change_branch_request) begin
+				branch_stack_operation = change_branch_operation;
+				branch_stack_pc        = change_branch_pc;
+				branch_stack_mask      = change_branch_mask;
+			end
+		end
 
 		// start上升沿按照thread_count激活低编号线程。
 		if (start && !start_q) begin
@@ -81,12 +172,40 @@ module core #(
 			running_d = (thread_count != '0);
 			done      = (thread_count == '0);
 		end else if (running) begin
-			// 对应线程执行RET后清除其mask位。
-			mask_d = mask & ~ret_vector;
-			if (!(|mask_d)) begin
-				running_d = 1'b0;
-				done      = 1'b1;
+			if (change_branch_request &&
+			    (change_branch_operation == branch_stack_pkg::STACK_POP)) begin
+				mask_d = mask | branch_top_mask;
+			end else if (change_branch_request &&
+			             (change_branch_operation == branch_stack_pkg::STACK_POP_PUSH)) begin
+				// 将当前路径写回栈，同时切换到操作前的栈顶路径。
+				mask_d = branch_top_mask;
+			end else if (conditional_pc_write_enable) begin
+				mask_d = branch_mask_one;
+			end else begin
+				// 对应线程执行RET后清除其mask位。
+				mask_d = mask & ~ret_vector;
+				if (!(|mask_d)) begin
+					running_d = 1'b0;
+					done      = 1'b1;
+				end
 			end
+		end
+	end
+
+	always_comb begin
+		if_current_pc   = pc;
+		if_current_mask = mask;
+
+		if (running && change_branch_request &&
+		    (change_branch_operation == branch_stack_pkg::STACK_POP)) begin
+			if_current_mask = mask | branch_top_mask;
+		end else if (running && change_branch_request &&
+		             (change_branch_operation == branch_stack_pkg::STACK_POP_PUSH)) begin
+			if_current_pc   = branch_top_pc;
+			if_current_mask = branch_top_mask;
+		end else if (running && conditional_pc_write_enable) begin
+			if_current_pc   = branch_address_one;
+			if_current_mask = branch_mask_one;
 		end
 	end
 
@@ -94,7 +213,7 @@ module core #(
 	always_comb begin
 		pc_d = if_next_pc;
 		if (running && pc_write_enable)
-			pc_d = branch_address;
+			pc_d = branch_address_one;
 	end
 
 	always_ff @(posedge clk) begin
@@ -116,19 +235,22 @@ module core #(
 
 	if_stage #(
 		.PROGRAM_MEM_ADDR_BITS(PROGRAM_MEM_ADDR_BITS),
-		.PROGRAM_MEM_DATA_BITS(PROGRAM_MEM_DATA_BITS)
+		.PROGRAM_MEM_DATA_BITS(PROGRAM_MEM_DATA_BITS),
+		.MASK_BITS            (THREADS_PER_BLOCK)
 	) if_stage_instance (
 		.clk             (clk),
 		.reset           (reset),
 		.start           (running),
 		.ready           (if_ready),
-		.pc_write_enable (pc_write_enable),
-		.current_pc      (pc),
+		.current_pc      (if_current_pc),
+		.current_mask    (if_current_mask),
 		.mem_read_valid  (program_mem_read_valid),
 		.mem_read_address(program_mem_read_address),
 		.mem_read_ready  (program_mem_read_ready),
 		.mem_read_data   (program_mem_read_data),
 		.instruction     (if_instruction),
+		.instruction_pc  (if_instruction_pc),
+		.instruction_mask(if_instruction_mask),
 		.instruction_flag(if_instruction_flag),
 		.valid           (if_valid),
 		.next_pc         (if_next_pc)
@@ -226,13 +348,17 @@ module core #(
 			id_stage #(
 				.PROGRAM_MEM_ADDR_BITS(PROGRAM_MEM_ADDR_BITS),
 				.PROGRAM_MEM_DATA_BITS(PROGRAM_MEM_DATA_BITS),
-				.DATA_BITS            (DATA_MEM_DATA_BITS)
+				.DATA_BITS            (DATA_MEM_DATA_BITS),
+				.PC_BITS              (PROGRAM_MEM_ADDR_BITS),
+				.MASK_BITS            (THREADS_PER_BLOCK)
 			) id_stage_instance (
 				.start               (thread_running),
 				.clk                 (clk),
 				.reset               (reset),
 				.valid_in            (if_valid),
 				.instruction         (if_instruction),
+				.instruction_pc      (if_instruction_pc),
+				.instruction_mask    (if_instruction_mask),
 				.instruction_flag    (if_instruction_flag),
 				.rf_rs_data          (rf_rs_data),
 				.rf_rt_data          (rf_rt_data),
@@ -250,6 +376,9 @@ module core #(
 				.mem_forward_ready   (mem_forward_ready),
 				.mem_nzp_write_enable(mem_forward_valid && mem_forward_nzp_write),
 				.mem_nzp_write_data  (mem_forward_nzp_data),
+				.branch_top_pc       (branch_top_pc),
+				.branch_top_mask     (branch_top_mask),
+				.branch_empty        (branch_empty),
 				.rd_addr             (id_rd_addr),
 				.rs_data             (id_rs_data),
 				.rt_data             (id_rt_data),
@@ -263,10 +392,14 @@ module core #(
 				.mem_write           (id_mem_write),
 				.store_data          (id_store_data),
 				.pc_write_enable     (pc_write_enable_vector[thread_index]),
+				.branch_unconditional(branch_unconditional_vector[thread_index]),
 				.branch_offset       (branch_offset_vector[thread_index]),
 				.is_ret              (id_is_ret),
 				.valid               (id_valid),
 				.ready_out           (id_ready_vector[thread_index]),
+				.change_branch_enable(change_branch_enable_vector[thread_index]),
+				.change_branch_pc    (change_branch_pc_vector[thread_index]),
+				.change_branch_mask  (change_branch_mask_vector[thread_index]),
 				.ready_in            (ex_ready_out)
 			);
 

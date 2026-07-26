@@ -2,16 +2,16 @@
 `timescale 1ns/1ns
 module if_stage #(
 	parameter PROGRAM_MEM_ADDR_BITS = 8 ,
-	parameter PROGRAM_MEM_DATA_BITS = 16
+	parameter PROGRAM_MEM_DATA_BITS = 16,
+	parameter MASK_BITS             = 4
 ) (
 	input  wire clk             ,
 	input  wire reset           ,
 	input  wire start           ,
 	// ID/IFID 是否可以接收
 	input  wire ready           ,
-	// ID确认跳转时，IF等待Core更新PC，本周期不再取指。
-	input  wire pc_write_enable ,
 	input  wire [PROGRAM_MEM_ADDR_BITS-1:0] current_pc      ,
+	input  wire [             MASK_BITS-1:0] current_mask    ,
 	// Program memory
 	output logic                             mem_read_valid  ,
 	output logic [PROGRAM_MEM_ADDR_BITS-1:0] mem_read_address,
@@ -19,6 +19,8 @@ module if_stage #(
 	input  wire [PROGRAM_MEM_DATA_BITS-1:0] mem_read_data   ,
 	// 输出到 IF/ID
 	output logic [PROGRAM_MEM_DATA_BITS-1:0] instruction     ,
+	output logic [PROGRAM_MEM_ADDR_BITS-1:0] instruction_pc  ,
+	output logic [             MASK_BITS-1:0] instruction_mask,
 	output logic                             instruction_flag,
 	output logic                             valid           ,
 	output logic [PROGRAM_MEM_ADDR_BITS-1:0] next_pc
@@ -31,31 +33,33 @@ module if_stage #(
 	} if_state_t;
 
 	logic [PROGRAM_MEM_DATA_BITS-1:0] instruction_d;
+	logic [PROGRAM_MEM_ADDR_BITS-1:0] instruction_pc_d;
+	logic [             MASK_BITS-1:0] instruction_mask_d;
 	logic                             instruction_flag_d;
 	logic                             valid_d      ;
 	if_state_t                        state_p      ;
 	if_state_t                        state_d      ;
 	logic [PROGRAM_MEM_ADDR_BITS-1:0] request_address_p;
 	logic [PROGRAM_MEM_ADDR_BITS-1:0] request_address_d;
+	logic [             MASK_BITS-1:0] request_mask_p;
+	logic [             MASK_BITS-1:0] request_mask_d;
 
 	always_comb begin
 		instruction_d     = instruction;
+		instruction_pc_d  = instruction_pc;
+		instruction_mask_d = instruction_mask;
 		instruction_flag_d = instruction_flag;
 		valid_d           = valid;
 		state_d           = state_p;
 		request_address_d = request_address_p;
+		request_mask_d    = request_mask_p;
 
 		// 默认无请求
 		mem_read_valid   = 1'b0;
 		mem_read_address = '0;
 		next_pc         = current_pc;
 
-		if (pc_write_enable) begin
-			// ID中的分支指令仍然有效；这里只丢弃错误路径上的后一条取指。
-			// IF等待一个周期，下一次从Core更新后的PC继续取指。
-			valid_d = 1'b0;
-			state_d = IDLE;
-		end else case (state_p)
+		case (state_p)
 			IDLE: begin
 				if (start && ready) begin
 					mem_read_valid   = 1'b1;
@@ -64,11 +68,14 @@ module if_stage #(
 
 					if (mem_read_ready) begin
 						instruction_d = mem_read_data;
+						instruction_pc_d = current_pc;
+						instruction_mask_d = current_mask;
 						instruction_flag_d = ~instruction_flag;
 						valid_d       = 1'b1;
 						next_pc       = current_pc + PC_ADD;
 					end else begin
 						request_address_d = current_pc;
+						request_mask_d    = current_mask;
 						state_d           = WAIT;
 					end
 				end
@@ -81,6 +88,8 @@ module if_stage #(
 
 				if (mem_read_ready) begin
 					instruction_d = mem_read_data;
+					instruction_pc_d = request_address_p;
+					instruction_mask_d = request_mask_p;
 					instruction_flag_d = ~instruction_flag;
 					valid_d       = 1'b1;
 					next_pc       = request_address_p + PC_ADD;
@@ -94,17 +103,23 @@ module if_stage #(
 	always_ff @(posedge clk) begin
 		if(reset) begin
 			instruction      <= '0;
+			instruction_pc   <= '0;
+			instruction_mask <= '0;
 			instruction_flag <= 1'b0;
 			valid            <= '0;
 			state_p          <= IDLE;
 			request_address_p <= '0;
+			request_mask_p   <= '0;
 
 		end else begin
 			instruction      <= instruction_d;
+			instruction_pc   <= instruction_pc_d;
+			instruction_mask <= instruction_mask_d;
 			instruction_flag <= instruction_flag_d;
 			valid            <= valid_d;
 			state_p          <= state_d;
 			request_address_p <= request_address_d;
+			request_mask_p   <= request_mask_d;
 		end
 	end
 endmodule

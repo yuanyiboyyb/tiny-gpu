@@ -54,6 +54,16 @@ MATMUL_PROGRAM = [
 ]
 
 
+MATMUL_BRANCH_JOIN_PROGRAM = MATMUL_PROGRAM[:-3] + [
+    0b1001101000001010,  # CONST R10, #10               ; result threshold
+    0b0010000010001010,  # CMP   R8, R10
+    0b0001001000111010,  # BRp   #58                    ; result > 10: set it to zero
+    0b0001111000111100,  # BRnzp #60                    ; otherwise skip the zeroing path
+    0b1001100000000000,  # CONST R8, #0
+    0b1010000000000000,  # JOIN                          ; merge both branch paths
+] + MATMUL_PROGRAM[-3:]
+
+
 class Memory:
     """One-cycle ready/valid memory model for the GPU top-level ports."""
 
@@ -233,3 +243,21 @@ async def test_matmul(dut):
     expected = [7, 10, 15, 22]
     actual = data_memory.memory[8:12]
     assert actual == expected, f"matmul expected {expected}, got {actual}"
+
+
+@cocotb.test()
+async def test_matmul_branch_join(dut):
+    data = [1, 2, 3, 4, 1, 2, 3, 4]
+    program_memory, data_memory = await setup_gpu(
+        dut, MATMUL_BRANCH_JOIN_PROGRAM, data, threads=4
+    )
+    await run_until_done(dut, program_memory, data_memory)
+
+    # The branch diverges within one four-thread block: threads 0 and 1 keep
+    # their values, while threads 2 and 3 take the zeroing path. All four
+    # threads must be active again after JOIN so every result is written back.
+    expected = [7, 10, 0, 0]
+    actual = data_memory.memory[8:12]
+    assert actual == expected, (
+        f"matmul branch/join expected {expected}, got {actual}"
+    )

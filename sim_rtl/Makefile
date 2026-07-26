@@ -6,6 +6,8 @@ SIM_BUILD     := build/sim_build
 
 RTL_DIR := $(abspath ../rtl)
 VERILOG_SOURCES := \
+	$(RTL_DIR)/branch_stack_pkg.sv \
+	$(RTL_DIR)/pipeline/branch_stack.sv \
 	$(RTL_DIR)/gpu.sv \
 	$(RTL_DIR)/core.sv \
 	$(RTL_DIR)/dcr.sv \
@@ -21,13 +23,16 @@ VERILOG_SOURCES := \
 COMPILE_ARGS += -Wall -Wno-fatal --trace --trace-structs --trace-depth 0
 SIM_ARGS     += --trace
 
-.PHONY: matadd matmul wave
+.PHONY: matadd matmul matmul_branch_join wave
 
 matadd:
 	$(MAKE) sim TESTCASE=test_matadd
 
 matmul:
 	$(MAKE) sim TESTCASE=test_matmul
+
+matmul_branch_join:
+	$(MAKE) sim TESTCASE=test_matmul_branch_join
 
 
 include $(shell cocotb-config --makefiles)/Makefile.sim
