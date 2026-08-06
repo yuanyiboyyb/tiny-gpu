@@ -1,0 +1,52 @@
+diff --git a/hw/misc/Kconfig b/hw/misc/Kconfig
+--- a/hw/misc/Kconfig
++++ b/hw/misc/Kconfig
+@@ -35,6 +35,11 @@ config EDU
+     default y if TEST_DEVICES
+     depends on PCI && MSI_NONBROKEN
+ 
++config TINYGPU
++    bool
++    default y if PCI_DEVICES
++    depends on PCI
++
+ config I2C_ECHO
+     bool
+     default y if TEST_DEVICES
+diff --git a/hw/misc/meson.build b/hw/misc/meson.build
+--- a/hw/misc/meson.build
++++ b/hw/misc/meson.build
+@@ -1,5 +1,22 @@
+ system_ss.add(when: 'CONFIG_APPLESMC', if_true: files('applesmc.c'))
+ system_ss.add(when: 'CONFIG_EDU', if_true: files('edu.c'))
++tinygpu_model = cc.find_library(
++  'tinygpu_verilated',
++  dirs: meson.current_source_dir() / '../../../tiny-gpu/virtualization/build/device',
++  required: true,
++)
++tinygpu_cxx_runtime = cxx.find_library('stdc++', required: true)
++tinygpu_model_dep = declare_dependency(
++  dependencies: [tinygpu_model, tinygpu_cxx_runtime],
++  include_directories: include_directories(
++    '../../../tiny-gpu/virtualization/device/include',
++    '../../../tiny-gpu/virtualization/common',
++  ),
++)
++system_ss.add(
++  when: 'CONFIG_TINYGPU',
++  if_true: [files('tinygpu.c', 'tinygpu-verilator.cpp'), tinygpu_model_dep],
++)
+ system_ss.add(when: 'CONFIG_FW_CFG_DMA', if_true: files('vmcoreinfo.c'))
+ system_ss.add(when: 'CONFIG_ISA_DEBUG', if_true: files('debugexit.c'))
+ system_ss.add(when: 'CONFIG_ISA_TESTDEV', if_true: files('pc-testdev.c'))
+diff --git a/tests/qtest/meson.build b/tests/qtest/meson.build
+--- a/tests/qtest/meson.build
++++ b/tests/qtest/meson.build
+@@ -52,6 +52,7 @@ qtests_filter = \
+ 
+ qtests_i386 = \
+   (slirp.found() ? ['pxe-test'] : []) + \
++  (config_all_devices.has_key('CONFIG_TINYGPU') ? ['tinygpu-test'] : []) +                 \
+   qtests_filter + \
+   (config_all_devices.has_key('CONFIG_ACPI_VMGENID') ? ['vmgenid-test'] : []) +             \
+   (config_all_devices.has_key('CONFIG_AHCI_ICH9') and have_tools ? ['ahci-test'] : []) +    \

@@ -1,0 +1,44 @@
+#ifndef TINYGPU_HW_H
+#define TINYGPU_HW_H
+
+/* Private IDs for development only; obtain an assigned vendor ID for release. */
+#define TINYGPU_PCI_VENDOR_ID 0x1234
+#define TINYGPU_PCI_DEVICE_ID 0x1001
+
+#define TINYGPU_BAR_INDEX 0
+#define TINYGPU_BAR_SIZE  0x1000
+
+#define TINYGPU_REG_ID                 0x000
+#define TINYGPU_REG_CONTROL            0x004
+#define TINYGPU_REG_STATUS             0x008
+#define TINYGPU_REG_THREAD_COUNT       0x00c
+#define TINYGPU_REG_PROGRAM_ADDR_LO    0x010
+#define TINYGPU_REG_PROGRAM_ADDR_HI    0x014
+#define TINYGPU_REG_PROGRAM_LENGTH     0x018
+#define TINYGPU_REG_INPUT_ADDR_LO      0x020
+#define TINYGPU_REG_INPUT_ADDR_HI      0x024
+#define TINYGPU_REG_INPUT_LENGTH       0x028
+#define TINYGPU_REG_INPUT_OFFSET       0x02c
+#define TINYGPU_REG_OUTPUT_ADDR_LO     0x030
+#define TINYGPU_REG_OUTPUT_ADDR_HI     0x034
+#define TINYGPU_REG_OUTPUT_LENGTH      0x038
+#define TINYGPU_REG_OUTPUT_OFFSET      0x03c
+#define TINYGPU_REG_IRQ_ENABLE         0x040
+#define TINYGPU_REG_IRQ_STATUS         0x044
+
+#define TINYGPU_DEVICE_ID_VALUE 0x54475055u
+
+#define TINYGPU_CONTROL_START      (1u << 0)
+#define TINYGPU_CONTROL_SOFT_RESET (1u << 1)
+
+#define TINYGPU_STATUS_BUSY  (1u << 0)
+#define TINYGPU_STATUS_DONE  (1u << 1)
+#define TINYGPU_STATUS_ERROR (1u << 2)
+
+#define TINYGPU_IRQ_COMPLETE (1u << 0)
+#define TINYGPU_IRQ_ERROR    (1u << 1)
+
+#define TINYGPU_PROGRAM_MEMORY_SIZE 256u
+#define TINYGPU_DATA_MEMORY_SIZE    256u
+
+#endif

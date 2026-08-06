@@ -1,23 +1,46 @@
 import cocotb
+import ctypes
+from pathlib import Path
+
 from cocotb.clock import Clock
 from cocotb.triggers import FallingEdge, ReadOnly, RisingEdge, Timer
 
 
-MATADD_PROGRAM = [
-    0b0101000011011110,  # MUL   R0, %blockIdx, %blockDim
-    0b0011000000001111,  # ADD   R0, R0, %threadIdx      ; i = blockIdx * blockDim + threadIdx
-    0b1001000100000000,  # CONST R1, #0                 ; baseA
-    0b1001001000001000,  # CONST R2, #8                 ; baseB
-    0b1001001100010000,  # CONST R3, #16                ; baseC
-    0b0011010000010000,  # ADD   R4, R1, R0             ; address of A[i]
-    0b0111010001000000,  # LDR   R4, R4                 ; load A[i]
-    0b0011010100100000,  # ADD   R5, R2, R0             ; address of B[i]
-    0b0111010101010000,  # LDR   R5, R5                 ; load B[i]
-    0b0011011001000101,  # ADD   R6, R4, R5             ; C[i] = A[i] + B[i]
-    0b0011011100110000,  # ADD   R7, R3, R0             ; address of C[i]
-    0b1000000001110110,  # STR   R7, R6                 ; store C[i]
-    0b1111000000000000,  # RET
-] 
+SIM_RTL_DIR = Path(__file__).resolve().parent
+
+
+def load_program_binary(path):
+    image = path.read_bytes()
+    if len(image) % 2:
+        raise ValueError(f"program image {path} has an odd byte count")
+    if len(image) > 256:
+        raise ValueError(f"program image {path} exceeds 256-byte program memory")
+    return [
+        int.from_bytes(image[offset:offset + 2], byteorder="little")
+        for offset in range(0, len(image), 2)
+    ]
+
+
+# TinyGPU's target ABI has 8-bit data-memory pointers. No _pack_ override is
+# used: ctypes applies the ordinary C field-alignment rules for these types.
+TinyGpuPointer = ctypes.c_uint8
+
+
+class MataddKernelArgs(ctypes.Structure):
+    _fields_ = [
+        ("input_a", TinyGpuPointer),
+        ("input_b", TinyGpuPointer),
+        ("output", TinyGpuPointer),
+    ]
+
+
+assert ctypes.sizeof(MataddKernelArgs) == 3
+assert MataddKernelArgs.input_a.offset == 0
+assert MataddKernelArgs.input_b.offset == 1
+assert MataddKernelArgs.output.offset == 2
+
+
+MATADD_PROGRAM = load_program_binary(SIM_RTL_DIR / "matadd.bin")
 
 
 
@@ -221,14 +244,27 @@ async def run_until_done(dut, program_memory, data_memory, max_cycles=2000):
 
 @cocotb.test()
 async def test_matadd(dut):
-    data = list(range(1, 9)) + list(range(1, 9))
+    input_a_address = 3
+    input_b_address = 11
+    output_address = 19
+    kernel_args = MataddKernelArgs(
+        input_a=input_a_address,
+        input_b=input_b_address,
+        output=output_address,
+    )
+    data = (
+        list(bytes(kernel_args))
+        + list(range(1, 9))
+        + list(range(1, 9))
+        + [0] * 8
+    )
     program_memory, data_memory = await setup_gpu(
         dut, MATADD_PROGRAM, data, threads=8
     )
     await run_until_done(dut, program_memory, data_memory)
 
     expected = [value * 2 for value in range(1, 9)]
-    actual = data_memory.memory[16:24]
+    actual = data_memory.memory[output_address:output_address + 8]
     assert actual == expected, f"matadd expected {expected}, got {actual}"
 
 

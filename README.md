@@ -1,58 +1,57 @@
 # tiny-gpu
 
-A minimal GPU implementation in Verilog optimized for learning about how GPUs work from the ground up.
+TinyGPU is a small GPU project split into two main areas:
 
-Built with <15 files of fully documented Verilog, complete documentation on architecture & ISA, working matrix addition/multiplication kernels, and full support for kernel simulation & execution traces.
+- `rtl/`: the hardware source of record
+- `virtualization/`: the host-side model, compiler, runtime, guest driver, and
+  QEMU integration notes
 
-### Table of Contents
+This top-level README is now a map of the repository and workspace. Detailed
+hardware notes stay with `rtl/`, and detailed virtualization workflow notes
+stay with `virtualization/`.
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-  - [GPU](#gpu)
-  - [Memory](#memory)
-  - [Core](#core)
-- [ISA](#isa)
-- [Execution](#execution)
-  - [Core](#core-1)
-  - [Thread](#thread)
-- [Kernels](#kernels)
-  - [Matrix Addition](#matrix-addition)
-  - [Matrix Multiplication](/tree/master?tab=readme-ov-file#matrix-multiplication)
-- [Simulation](#simulation)
-- [Advanced Functionality](#advanced-functionality)
-- [Next Steps](#next-steps)
+## Repository Layout
 
-# Overview
+```text
+tiny-gpu/
+├── rtl/             Synthesizable SystemVerilog source
+├── sim_rtl/         Lightweight RTL simulation flow and sample kernels
+├── virtualization/  Host-side model, compiler, runtime, driver, and tests
+├── docs/            Figures and supporting documentation assets
+└── test/            Python-level project tests
+```
 
-If you want to learn how a CPU works all the way from architecture to control signals, there are many resources online to help you.
+## Workspace Layout
 
-GPUs are not the same.
+The current workspace is intended to look like this:
 
-Because the GPU market is so competitive, low-level technical details for all modern architectures remain proprietary.
+```text
+<workspace>/
+├── tiny-gpu/
+├── qemu-x86/
+└── tinygpu-linux/
+```
 
-While there are lots of resources to learn about GPU programming, there's almost nothing available to learn about how GPU's work at a hardware level.
+Responsibilities are split like this:
 
-The best option is to go through open-source GPU implementations like [Miaow](https://github.com/VerticalResearchGroup/miaow) and [VeriGPU](https://github.com/hughperkins/VeriGPU/tree/main) and try to figure out what's going on. This is challenging since these projects aim at being feature complete and functional, so they're quite complex.
+- `tiny-gpu/rtl/` owns the TinyGPU hardware implementation
+- `tiny-gpu/virtualization/` owns TinyGPU-side software and host integration
+- `qemu-x86/` owns QEMU source changes and QEMU build output
+- `tinygpu-linux/` owns guest Linux source, modules, and rootfs build output
 
-This is why I built `tiny-gpu`!
+## Build Boundaries
 
-## What is tiny-gpu?
+- Build TinyGPU virtualization-side artifacts from `tiny-gpu/virtualization/`
+  and keep the output under `tiny-gpu/virtualization/build/`.
+- Build QEMU in the external `qemu-x86/` tree using QEMU's own build flow.
+- Build guest Linux artifacts in the external `tinygpu-linux/` tree using its
+  own build flow.
 
-> [!IMPORTANT]
->
-> **tiny-gpu** is a minimal GPU implementation optimized for learning about how GPUs work from the ground up.
->
-> Specifically, with the trend toward general-purpose GPUs (GPGPUs) and ML-accelerators like Google's TPU, tiny-gpu focuses on highlighting the general principles of all of these architectures, rather than on the details of graphics-specific hardware.
+## Where To Start
 
-With this motivation in mind, we can simplify GPUs by cutting out the majority of complexity involved with building a production-grade graphics card, and focus on the core elements that are critical to all of these modern hardware accelerators.
-
-This project is primarily focused on exploring:
-
-1. **Architecture** - What does the architecture of a GPU look like? What are the most important elements?
-2. **Parallelization** - How is the SIMD progamming model implemented in hardware?
-3. **Memory** - How does a GPU work around the constraints of limited memory bandwidth?
-
-After understanding the fundamentals laid out in this project, you can checkout the [advanced functionality section](#advanced-functionality) to understand some of the most important optimizations made in production grade GPUs (that are more challenging to implement) which improve performance.
+- Read `rtl/README.md` for the hardware-side structure.
+- Read `virtualization/README.md` for environment setup, build commands, and
+  subtree responsibilities.
 
 # Architecture
 
@@ -178,7 +177,7 @@ Since threads are processed in parallel, tiny-gpu assumes that all threads "conv
 
 In real GPUs, individual threads can branch to different PCs, causing **branch divergence** where a group of threads threads initially being processed together has to split out into separate execution.
 
-# ISA
+## ISA
 
 ![ISA](/docs/images/isa.png)
 
@@ -196,7 +195,7 @@ For these purposes, it supports the following instructions:
 
 Each register is specified by 4 bits, meaning that there are 16 total registers. The first 13 register `R0` - `R12` are free registers that support read/write. The last 3 registers are special read-only registers used to supply the `%blockIdx`, `%blockDim`, and `%threadIdx` critical to SIMD.
 
-# Execution
+## Execution
 
 ### Core
 

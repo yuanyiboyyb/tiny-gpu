@@ -1,0 +1,50 @@
+#!/bin/sh
+
+export PATH=/bin:/sbin
+export HOME=/root
+export USER=root
+export PS1='tinygpu# '
+
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
+
+mkdir -p /dev/pts /dev/shm /run /tmp
+mount -t devpts devpts /dev/pts
+mount -t tmpfs tmpfs /dev/shm
+mount -t tmpfs tmpfs /run
+mount -t tmpfs tmpfs /tmp
+chmod 1777 /tmp
+
+echo /bin/mdev > /proc/sys/kernel/hotplug
+mdev -s
+
+for tinygpu_module in /lib/modules/*/extra/tinygpu.ko; do
+    [ -f "$tinygpu_module" ] || continue
+    if insmod "$tinygpu_module"; then
+        echo "Loaded TinyGPU driver: $tinygpu_module"
+        mdev -s
+    else
+        echo "Failed to load TinyGPU driver: $tinygpu_module"
+    fi
+done
+
+hostname -F /etc/hostname
+. /etc/profile
+
+echo
+cat /etc/issue
+uname -a
+echo
+echo "PCI devices under /sys/bus/pci/devices:"
+ls /sys/bus/pci/devices
+echo
+echo "Test: tinygpu-runtime-matadd /opt/tinygpu/kernels/matadd.bin /dev/tinygpu0"
+if [ -e /dev/tinygpu0 ]; then
+    echo "TinyGPU device ready: /dev/tinygpu0"
+else
+    echo "TinyGPU device node was not created; inspect dmesg"
+fi
+echo
+
+exec setsid cttyhack /bin/sh

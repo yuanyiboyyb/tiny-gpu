@@ -23,9 +23,20 @@ VERILOG_SOURCES := \
 COMPILE_ARGS += -Wall -Wno-fatal --trace --trace-structs --trace-depth 0
 SIM_ARGS     += --trace
 
-.PHONY: matadd matmul matmul_branch_join wave
+TINYGPU_CC ?= ../virtualization/build/compiler/tinygpu-cc
+TINYGPU_AS ?= ../virtualization/build/compiler/tinygpu-as
 
-matadd:
+.PHONY: matadd matadd_kernel matmul matmul_branch_join wave
+
+matadd_kernel: matadd.s matadd.bin
+
+matadd.s: matadd.tu
+	$(TINYGPU_CC) $< -S -o $@
+
+matadd.bin: matadd.s
+	$(TINYGPU_AS) $< -o $@
+
+matadd: matadd_kernel
 	$(MAKE) sim TESTCASE=test_matadd
 
 matmul:
@@ -34,5 +45,10 @@ matmul:
 matmul_branch_join:
 	$(MAKE) sim TESTCASE=test_matmul_branch_join
 
+COCOTB_MAKEFILES := $(shell cocotb-config --makefiles 2>/dev/null)
 
-include $(shell cocotb-config --makefiles)/Makefile.sim
+ifneq ($(COCOTB_MAKEFILES),)
+include $(COCOTB_MAKEFILES)/Makefile.sim
+else ifneq ($(filter matadd matmul matmul_branch_join sim,$(MAKECMDGOALS)),)
+$(error cocotb-config was not found; install cocotb before running RTL simulation)
+endif

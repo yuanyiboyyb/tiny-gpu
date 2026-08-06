@@ -10,3 +10,7 @@ results.xml
 tools/
 scripts/
 sim_rtl/dump.vcd
+
+GPATH
+GTAGS
+GRTAGS
