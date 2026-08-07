@@ -1,28 +1,65 @@
 #!/bin/sh
 set -eu
 
-qemu_bin=${QEMU_BIN:-qemu-system-x86_64}
-tinygpu_socket=${TINYGPU_SOCKET:-/tmp/tinygpu.sock}
-tinygpu_memory=${TINYGPU_MEMORY:-2G}
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+virtualization_dir=$(CDPATH= cd -- "$script_dir/.." && pwd)
+project_dir=$(dirname -- "$virtualization_dir")
+workspace_dir=$(dirname -- "$project_dir")
+linux_src_dir=${LINUX_SRC_DIR:-"$workspace_dir/linux-src"}
+rootfs_workspace=${TINYGPU_ROOTFS_DIR:-"$workspace_dir/tinygpu-rootfs"}
 
-if [ -z "${TINYGPU_IMAGE:-}" ]; then
-    echo "TINYGPU_IMAGE must point to a guest disk image" >&2
-    exit 2
+qemu_bin=${QEMU_BIN:-"$workspace_dir/qemu-x86/build/qemu-system-x86_64"}
+kernel_image=${KERNEL_IMAGE:-"$linux_src_dir/arch/x86/boot/bzImage"}
+initramfs_image=${INITRAMFS_IMAGE:-"$rootfs_workspace/initramfs.cpio.gz"}
+guest_memory=${GUEST_MEMORY:-512M}
+guest_cpus=${GUEST_CPUS:-2}
+exec_delay_ms=${TINYGPU_EXEC_DELAY_MS:-1}
+
+require_executable()
+{
+    if [ ! -x "$1" ]; then
+        echo "missing executable: $1" >&2
+        exit 1
+    fi
+}
+
+require_file()
+{
+    if [ ! -f "$1" ]; then
+        echo "missing file: $1" >&2
+        exit 1
+    fi
+}
+
+require_executable "$qemu_bin"
+require_file "$kernel_image"
+require_file "$initramfs_image"
+
+if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
+    accelerator=kvm
+    cpu_model=host
+else
+    accelerator=tcg,thread=multi
+    cpu_model=max
+    echo "KVM is unavailable; using TCG emulation" >&2
 fi
 
-if [ ! -S "$tinygpu_socket" ]; then
-    echo "tiny-gpu vfio-user socket does not exist: $tinygpu_socket" >&2
-    echo "start tinygpu-vfio-server before QEMU" >&2
-    exit 2
-fi
-
-tinygpu_device=$(printf '%s' \
-    "{\"driver\":\"vfio-user-pci\",\"socket\":{\"path\":\"$tinygpu_socket\",\"type\":\"unix\"}}")
+echo "QEMU:      $qemu_bin"
+echo "Kernel:    $kernel_image"
+echo "Initramfs: $initramfs_image"
+echo "Device:    tinygpu (exec-delay-ms=$exec_delay_ms)"
+echo "Exit QEMU with Ctrl-a x"
 
 exec "$qemu_bin" \
     -machine q35 \
-    -enable-kvm \
-    -m "$tinygpu_memory" \
-    -drive "file=$TINYGPU_IMAGE,if=virtio" \
-    -device "$tinygpu_device" \
+    -accel "$accelerator" \
+    -cpu "$cpu_model" \
+    -m "$guest_memory" \
+    -smp "$guest_cpus" \
+    -kernel "$kernel_image" \
+    -initrd "$initramfs_image" \
+    -append "console=ttyS0,115200 earlyprintk=serial rdinit=/init panic=-1 nokaslr" \
+    -device "tinygpu,exec-delay-ms=$exec_delay_ms" \
+    -no-reboot \
+    -nographic \
     "$@"

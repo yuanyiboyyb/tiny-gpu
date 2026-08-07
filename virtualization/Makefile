@@ -3,9 +3,8 @@ CTEST ?= ctest
 CMAKE_BUILD_TYPE ?= Debug
 BUILD_DIR ?= $(CURDIR)/build
 DRIVER_DIR ?= $(CURDIR)/driver
-TINYGPU_LINUX_DIR ?= $(abspath $(CURDIR)/../../tinygpu-linux)
-KERNEL_RELEASE ?= 6.8.0-136-generic
-KDIR ?= $(TINYGPU_LINUX_DIR)/headers/usr/src/linux-headers-$(KERNEL_RELEASE)
+LINUX_SRC_DIR ?= $(abspath $(CURDIR)/../../linux-src)
+KDIR ?= $(LINUX_SRC_DIR)
 
 .PHONY: all configure build test clean \
 	model-configure model-build model-test model-clean \
@@ -29,7 +28,7 @@ help:
 	'  make compiler-test  Run compiler tests from virtualization/build' \
 	'  make runtime-build  Build runtime library/examples into virtualization/build' \
 	'  make runtime-test   Run runtime tests from virtualization/build' \
-	'  make driver-build   Build the guest Linux driver with tinygpu-linux headers' \
+	'  make driver-build   Build the guest Linux driver against linux-src' \
 	'  make clean          Clean CMake artifacts under virtualization/build' \
 	'  make driver-clean   Clean guest driver artifacts under virtualization/build/driver'
 
@@ -61,8 +60,18 @@ runtime-test: model-configure
 
 driver-build:
 	@test -f "$(KDIR)/Makefile" || { \
-		echo "missing guest kernel headers: $(KDIR)" >&2; \
-		echo "prepare tinygpu-linux as described in virtualization/README.md" >&2; \
+		echo "missing guest kernel source tree: $(KDIR)" >&2; \
+		echo "place linux-src beside tiny-gpu as described in virtualization/README.md" >&2; \
+		exit 1; \
+	}
+	@test -f "$(KDIR)/.config" || { \
+		echo "guest kernel is not configured: $(KDIR)/.config" >&2; \
+		echo "configure and build linux-src before building the driver" >&2; \
+		exit 1; \
+	}
+	@test -f "$(KDIR)/Module.symvers" || { \
+		echo "missing kernel symbol table: $(KDIR)/Module.symvers" >&2; \
+		echo "run: make -C $(KDIR) -j\"\$$(nproc)\"" >&2; \
 		exit 1; \
 	}
 	$(MAKE) -C $(DRIVER_DIR) \

@@ -5,12 +5,12 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 virtualization_dir=$(CDPATH= cd -- "$script_dir/.." && pwd)
 project_dir=$(dirname -- "$virtualization_dir")
 workspace_dir=$(dirname -- "$project_dir")
-linux_dir=${TINYGPU_LINUX_DIR:-"$workspace_dir/tinygpu-linux"}
+linux_src_dir=${LINUX_SRC_DIR:-"$workspace_dir/linux-src"}
+rootfs_workspace=${TINYGPU_ROOTFS_DIR:-"$workspace_dir/tinygpu-rootfs"}
 
-rootfs_dir=${ROOTFS_DIR:-"$linux_dir/rootfs"}
-output_image=${1:-"$linux_dir/initramfs.cpio.gz"}
-kernel_release=${KERNEL_RELEASE:-6.8.0-136-generic}
-busybox=${BUSYBOX_BIN:-"$linux_dir/busybox-package/usr/bin/busybox"}
+rootfs_dir=${ROOTFS_DIR:-"$rootfs_workspace/rootfs"}
+output_image=${1:-"$rootfs_workspace/initramfs.cpio.gz"}
+busybox=${BUSYBOX_BIN:-"$rootfs_workspace/busybox"}
 driver=${TINYGPU_DRIVER:-"$virtualization_dir/build/driver/tinygpu.ko"}
 guest_build=${GUEST_BUILD_DIR:-"$virtualization_dir/build/guest"}
 toolkit="$rootfs_dir/opt/tinygpu"
@@ -26,11 +26,22 @@ require_file()
 
 require_file "$busybox"
 require_file "$driver"
+require_file "$linux_src_dir/Makefile"
+require_file "$linux_src_dir/.config"
 require_file "$project_dir/sim_rtl/matadd.tu"
 require_file "$project_dir/sim_rtl/matadd.s"
 require_file "$project_dir/sim_rtl/matadd.bin"
 
+kernel_release=${KERNEL_RELEASE:-$(make -s -C "$linux_src_dir" kernelrelease)}
+
 echo "[1/6] Preparing the minimal BusyBox rootfs"
+case "$rootfs_dir" in
+    ""|/)
+        echo "refusing unsafe rootfs directory: $rootfs_dir" >&2
+        exit 1
+        ;;
+esac
+rm -rf "$rootfs_dir/lib/modules"
 mkdir -p \
     "$rootfs_dir/bin" "$rootfs_dir/sbin" "$rootfs_dir/etc" \
     "$rootfs_dir/proc" "$rootfs_dir/sys" "$rootfs_dir/dev" \

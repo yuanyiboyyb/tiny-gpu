@@ -1,14 +1,29 @@
 # tiny-gpu
 
-TinyGPU is a small GPU project split into two main areas:
+## Original Project
 
-- `rtl/`: the hardware source of record
-- `virtualization/`: the host-side model, compiler, runtime, guest driver, and
-  QEMU integration notes
+TinyGPU originally began as a minimal Verilog GPU designed for learning how a
+GPU works from the ground up. It focuses on the essential parts of a compute
+GPU: parallel thread execution, instruction scheduling, memory access, and the
+hardware implementation of a SIMD programming model. The original project
+also provides a documented instruction set, matrix addition and multiplication
+kernels, RTL simulation, and execution traces.
 
-This top-level README is now a map of the repository and workspace. Detailed
-hardware notes stay with `rtl/`, and detailed virtualization workflow notes
-stay with `virtualization/`.
+## Work Added in This Repository
+
+This repository extends the original educational GPU into a pipelined and
+virtualized hardware/software system. The added work includes:
+
+- a five-stage GPU pipeline;
+- branch divergence and reconvergence support;
+- a TinyGPU language frontend, code generator, and assembler;
+- a userspace runtime and Linux PCI driver;
+- a Verilator model connected to a built-in QEMU PCI device;
+- a Linux guest kernel and BusyBox initramfs build flow; and
+- an end-to-end path that compiles and runs TinyGPU programs inside QEMU.
+
+The RTL implementation is under `rtl/`. The compiler, runtime, Linux driver,
+Verilator model, and QEMU integration are under `virtualization/`.
 
 ## Repository Layout
 
@@ -29,7 +44,8 @@ The current workspace is intended to look like this:
 <workspace>/
 ├── tiny-gpu/
 ├── qemu-x86/
-└── tinygpu-linux/
+├── linux-src/
+└── tinygpu-rootfs/
 ```
 
 Responsibilities are split like this:
@@ -37,15 +53,17 @@ Responsibilities are split like this:
 - `tiny-gpu/rtl/` owns the TinyGPU hardware implementation
 - `tiny-gpu/virtualization/` owns TinyGPU-side software and host integration
 - `qemu-x86/` owns QEMU source changes and QEMU build output
-- `tinygpu-linux/` owns guest Linux source, modules, and rootfs build output
+- `linux-src/` owns the guest Linux source and kernel build output
+- `tinygpu-rootfs/` contains only rootfs inputs, the unpacked rootfs, and the
+  generated initramfs
 
 ## Build Boundaries
 
 - Build TinyGPU virtualization-side artifacts from `tiny-gpu/virtualization/`
   and keep the output under `tiny-gpu/virtualization/build/`.
 - Build QEMU in the external `qemu-x86/` tree using QEMU's own build flow.
-- Build guest Linux artifacts in the external `tinygpu-linux/` tree using its
-  own build flow.
+- Build the guest kernel in the external `linux-src/` tree.
+- Generate the guest root filesystem under `tinygpu-rootfs/`.
 
 ## Where To Start
 

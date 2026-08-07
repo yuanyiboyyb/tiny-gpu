@@ -16,7 +16,7 @@ mount -t tmpfs tmpfs /run
 mount -t tmpfs tmpfs /tmp
 chmod 1777 /tmp
 
-echo /bin/mdev > /proc/sys/kernel/hotplug
+[ ! -e /proc/sys/kernel/hotplug ] || echo /bin/mdev > /proc/sys/kernel/hotplug
 mdev -s
 
 for tinygpu_module in /lib/modules/*/extra/tinygpu.ko; do
