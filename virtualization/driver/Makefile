@@ -3,7 +3,7 @@ tinygpu-y := tinygpu_pci.o
 
 ccflags-y += -I$(src)/../common
 
-KDIR ?= /lib/modules/$(shell uname -r)/build
+KDIR ?= $(abspath $(CURDIR)/../../../linux-src)
 BUILD_DIR ?= $(abspath $(CURDIR)/../build/driver)
 TINYGPU_COMMON := $(abspath $(CURDIR)/../common)
 

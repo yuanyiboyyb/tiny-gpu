@@ -1,4 +1,4 @@
-.PHONY: test compile
+.PHONY: test compile clean
 
 export LIBPYTHON_LOC=$(shell cocotb-config --libpython)
 
@@ -18,6 +18,9 @@ compile:
 
 compile_%:
 	sv2v -w build/$*.v src/$*.sv
+
+clean:
+	rm -rf build
 
 # TODO: Get gtkwave visualizaiton
 

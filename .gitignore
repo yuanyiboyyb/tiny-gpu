@@ -10,7 +10,7 @@ results.xml
 tools/
 scripts/
 sim_rtl/dump.vcd
-
+.svlint.toml
 GPATH
 GTAGS
 GRTAGS
